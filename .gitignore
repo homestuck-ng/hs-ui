@@ -6,3 +6,4 @@ out/
 samloader.log
 __pycache__/
 *.pyc
+prebuilts/smali/

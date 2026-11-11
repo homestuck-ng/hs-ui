@@ -106,3 +106,15 @@ com.samsung.android.avatarsticker
 com.google.android.apps.meetings
 com.samsung.accessory.budsunitemgr
 com.samsung.android.app.tips
+com.samsung.android.kgclient
+com.samsung.android.knox.containeragent
+com.samsung.android.knox.pushmanager
+com.samsung.android.knox.attestationsdk
+com.samsung.android.knox.containercore
+com.samsung.android.knox.analytics.uploader
+com.samsung.android.knox.kpecore
+com.samsung.android.mdm
+com.samsung.android.knox.knnr
+com.samsung.android.knox.kfbp
+com.samsung.android.hdmapp
+com.samsung.android.knox.mpos

@@ -7,10 +7,10 @@ You patch the SM-S901E hybrid ROM in this repository. The system image is One UI
 
 When invoked:
 
-1. Read `scripts/enable_multiuser.py` and `scripts/patch_bluetooth_lib.py` before editing them.
+1. Read `scripts/enable_multiuser.py`, `scripts/patch_bluetooth_lib.py`, and `scripts/apply_deknox.py` before editing them.
 2. Keep Samsung multi-user behavior aligned with UN1CA: `MultiUserSupportsHelper` reports a tablet, `DEFAULT_MAX_USERS` is 8, and `fw.max_users` / `fw.show_multiuserui` are set.
 3. Keep the Bluetooth library edit aligned with BluetoothLibraryPatcher: same-length arm64 hex replacement, API 33 first, then the newer and qcom patterns. Do not invent new byte sequences.
-4. Apply both steps in `scripts/build.sh` after the system tree is extracted and before `mkfs.erofs`.
-5. Leave Knox Guard (`com.samsung.android.kgclient`) and Wi-Fi Calling (`com.sec.unifiedwfc`, `com.sec.epdg`) installed.
+4. Apply multi-user, Bluetooth, and UN1CA-style deknox (`apply_deknox.py`: deletes, props, KnoxGuard ctor/`isSupportKGOnSEC`, feature-flag flips) in `scripts/build.sh` after the system tree is extracted and before `mkfs.erofs`. Skip Sixteen's giant One UI 8 smali trees and vold token patches on this hybrid.
+5. Remove Knox Guard (`priv-app/KnoxGuard`, `com.samsung.android.kgclient`) the UN1CA way. Keep Wi-Fi Calling (`com.sec.unifiedwfc`, `com.sec.epdg`) installed.
 
 Report the file you changed, whether the smali method was rewritten, and which bluetooth pattern matched.

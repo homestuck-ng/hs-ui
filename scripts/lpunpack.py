@@ -68,14 +68,28 @@ def unpack(image, outdir, names):
         if geom is None:
             raise SystemExit("LP geometry not found")
         max_size, slots = geom
+        # AOSP: reserved + primary geometry + backup geometry, then metadata slots.
+        meta_base = RESERVED + GEOM_SIZE * 2
         meta = None
         for slot in range(slots):
-            off = RESERVED + GEOM_SIZE + slot * max_size
+            off = meta_base + slot * max_size
             f.seek(off)
             blob = f.read(max_size)
             if len(blob) >= 4 and struct.unpack_from("<I", blob, 0)[0] == HDR_MAGIC:
                 meta = blob
                 break
+        if meta is None:
+            # Backup metadata lives after every primary slot.
+            backup_base = meta_base + slots * max_size
+            for slot in range(slots):
+                off = backup_base + slot * max_size
+                if off + 4 > size:
+                    break
+                f.seek(off)
+                blob = f.read(max_size)
+                if len(blob) >= 4 and struct.unpack_from("<I", blob, 0)[0] == HDR_MAGIC:
+                    meta = blob
+                    break
         if meta is None:
             raise SystemExit("LP header not found")
         tables, descs, major, minor = parse_header(meta)

@@ -59,11 +59,12 @@ def main():
             subprocess.check_call(["rm", "-rf", app_dir])
     with open(log_path, "w", encoding="utf-8") as f:
         f.write("\n".join(removed) + ("\n" if removed else ""))
-    for pkg in ("com.sec.unifiedwfc", "com.samsung.android.kgclient", "com.sec.epdg"):
+    for pkg in ("com.sec.unifiedwfc", "com.sec.epdg"):
         if pkg not in seen:
             raise SystemExit(f"{pkg} was not found in the tree")
         if any(line.startswith(pkg + " ") for line in removed):
             raise SystemExit(f"refusing to ship without {pkg}")
+    # KnoxGuard is removed by apply_deknox.py the UN1CA way after debloat.
     print("removed", len(removed), "scanned", len(seen))
 
 
