@@ -11,22 +11,15 @@ from __future__ import annotations
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
-import urllib.request
 import zipfile
 
-# One UI 5.1 ships dex that baksmali 2.5.x cannot read; use fat jars from baksmali/smali 3.x.
-SMALI_VER = "3.0.10"
-SMALI_URL = (
-    f"https://github.com/baksmali/smali/releases/download/{SMALI_VER}/"
-    f"smali-{SMALI_VER}-fat.jar"
-)
-BAKSMALI_URL = (
-    f"https://github.com/baksmali/smali/releases/download/{SMALI_VER}/"
-    f"baksmali-{SMALI_VER}-fat.jar"
-)
+_SCRIPTS = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
+from smali_tools import assemble, disassemble, tool_paths
 
 # Relative to system/system or system/ (system-as-root layouts both work).
 DELETE_REL = [
@@ -155,51 +148,6 @@ KG_CTOR = """.method public constructor <init>(Landroid/content/Context;)V
     throw p0
 .end method
 """
-
-
-def ensure_jar(url, dest):
-    if os.path.isfile(dest) and os.path.getsize(dest) > 1000:
-        return dest
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    tmp = dest + ".part"
-    urllib.request.urlretrieve(url, tmp)
-    os.replace(tmp, dest)
-    return dest
-
-
-def run(args):
-    subprocess.check_call(args)
-
-
-# One UI 5.1 / API 33. Without this, smali 3.x rejects .param/.field hidden-API tags.
-API_LEVEL = "33"
-
-
-def baksmali_disassemble(baksmali: str, dex_path: str, out: str) -> None:
-    # 3.x fat jar: "disassemble" (short form "d" still works on most builds).
-    for args in (
-        ["java", "-jar", baksmali, "disassemble", "--api", API_LEVEL, dex_path, "-o", out],
-        ["java", "-jar", baksmali, "d", "-a", API_LEVEL, dex_path, "-o", out],
-    ):
-        try:
-            run(args)
-            return
-        except subprocess.CalledProcessError:
-            last = args
-    raise SystemExit(f"baksmali failed: {last}")
-
-
-def smali_assemble(smali: str, smali_dir: str, dex_path: str) -> None:
-    for args in (
-        ["java", "-jar", smali, "assemble", "--api", API_LEVEL, smali_dir, "-o", dex_path],
-        ["java", "-jar", smali, "a", "-a", API_LEVEL, smali_dir, "-o", dex_path],
-    ):
-        try:
-            run(args)
-            return
-        except subprocess.CalledProcessError:
-            last = args
-    raise SystemExit(f"smali failed: {last}")
 
 
 def system_root(tree_system: str) -> str:
@@ -354,8 +302,7 @@ def dex_may_need_patch(dex_path: str) -> bool:
 
 
 def rewrite_jar(jar_path: str, tool_dir: str) -> dict[str, int]:
-    baksmali = ensure_jar(BAKSMALI_URL, os.path.join(tool_dir, "baksmali.jar"))
-    smali = ensure_jar(SMALI_URL, os.path.join(tool_dir, "smali.jar"))
+    baksmali, smali = tool_paths(tool_dir)
     with zipfile.ZipFile(jar_path) as archive:
         dexes = [n for n in archive.namelist() if n.startswith("classes") and n.endswith(".dex")]
     if not dexes:
@@ -370,10 +317,10 @@ def rewrite_jar(jar_path: str, tool_dir: str) -> dict[str, int]:
             if not dex_may_need_patch(dex_path):
                 continue
             out = os.path.join(tmp, dex + ".out")
-            baksmali_disassemble(baksmali, dex_path, out)
+            disassemble(baksmali, dex_path, out)
             stats = patch_smali_tree(out)
             if any(stats.values()):
-                smali_assemble(smali, out, dex_path)
+                assemble(smali, out, dex_path)
                 changed_dexes.append(dex)
                 for k, v in stats.items():
                     totals[k] += v
