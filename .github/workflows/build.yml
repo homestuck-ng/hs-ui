@@ -25,7 +25,7 @@ jobs:
             python3 python3-pip python3-venv \
             lz4 brotli zip unzip tar \
             erofs-utils f2fs-tools android-sdk-libsparse-utils \
-            aapt attr curl ca-certificates git
+            aapt attr curl ca-certificates git openjdk-21-jre-headless
           sudo modprobe erofs || true
           sudo modprobe f2fs || true
 

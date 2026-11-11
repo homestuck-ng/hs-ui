@@ -157,6 +157,10 @@ mk_erofs() {
     pad4k "$image"
 }
 
+echo "=== framework patches ==="
+python3 "$ROOT/scripts/enable_multiuser.py" "$TREE/system"
+python3 "$ROOT/scripts/patch_bluetooth_lib.py" "$TREE"
+
 echo "=== erofs ==="
 mk_erofs / "$PLAT" "$WORK/system.erofs" "$TREE/system"
 rm -rf "$TREE/system"
