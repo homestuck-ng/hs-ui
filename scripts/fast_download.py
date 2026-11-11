@@ -5,22 +5,42 @@ Several HTTP ranges run at once. Samsung accepts Range on this host, and a
 single samloader stream is what makes Actions look stuck.
 """
 import argparse
+import hashlib
 import os
 import sys
 import time
+import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 from Cryptodome.Cipher import AES
 
-from samloader.crypt import getv4key
 from samloader.fusclient import FUSClient
-from samloader.main import getbinaryfile, initdownload
+from samloader.main import initdownload
+from samloader.request import binaryinform, getlogiccheck
 from samloader.versionfetch import normalizevercode
 
 
 def unpad(data):
     return data[:-data[-1]]
+
+
+def xml_fields(text):
+    root = ET.fromstring(text)
+    found = {}
+    for parent in root.iter():
+        for child in list(parent):
+            if child.tag == "Data" and child.text:
+                found[parent.tag] = child.text.strip()
+    return found
+
+
+def fus_inform(client, fw, model, region, imei):
+    raw = client.makereq(
+        "NF_DownloadBinaryInform.do",
+        binaryinform(fw, model, region, imei, client.nonce),
+    )
+    return xml_fields(raw)
 
 
 def auth_headers(client):
@@ -138,10 +158,21 @@ def main():
     pda = version.split("/")[0]
     os.makedirs(args.out_dir, exist_ok=True)
     client = FUSClient()
-    path, filename, size = getbinaryfile(client, version, args.model, args.region, args.imei)
-    if pda not in filename and pda not in version:
-        raise SystemExit("FUS offered {}, wanted {}".format(filename, pda))
-    print("{} {} {:.2f} GB".format(pda, filename, size / (1024 ** 3)), flush=True)
+    info = fus_inform(client, version, args.model, args.region, args.imei)
+    got = info.get("LATEST_FW_VERSION") or ""
+    filename = info.get("BINARY_NAME") or ""
+    path = info.get("MODEL_PATH") or ""
+    ap_name = info.get("DEVICE_PDA_CODE1_FILE") or ""
+    print("offered {} ap {}".format(got, ap_name or filename), flush=True)
+    if not got.startswith(pda + "/") and pda not in ap_name:
+        raise SystemExit(
+            "FUS does not have {}. It offered {}.".format(pda, got.split("/")[0] or ap_name)
+        )
+    size = int(info["BINARY_BYTE_SIZE"])
+    logic = info.get("LOGIC_VALUE_FACTORY") or info.get("LOGIC_VALUE_HOME")
+    if not logic:
+        raise SystemExit("FUS reply has no decryption value")
+    key = hashlib.md5(getlogiccheck(got, logic).encode()).digest()
     initdownload(client, filename)
     headers = auth_headers(client)
     url = "http://cloud-neofussvr.samsungmobile.com/NF_DownloadBinaryForMass.do"
@@ -161,7 +192,6 @@ def main():
     if decrypted == enc:
         decrypted = enc + ".zip"
     print("decrypt", flush=True)
-    key = getv4key(version, args.model, args.region, args.imei)
     decrypt_file(enc, decrypted, key)
     os.remove(enc)
     print("zip", decrypted, flush=True)
