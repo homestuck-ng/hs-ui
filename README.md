@@ -6,18 +6,7 @@
 
 ## Загрузка прошивок
 
-Тот же инструмент, что в UN1CA `sixteen`: [ananjaser1211/samloader](https://github.com/ananjaser1211/samloader). Старый `nlscc/samloader` и `samfirm.js` из форка не используются.
-
-Вызов такой же, как `scripts/download_fw.sh` в UN1CA, только с `-v`, чтобы FUS отдал закреплённую сборку, а не latest. В Actions обе прошивки качаются сразу, каждая в 8 соединений, и AP остаётся в кэше на следующий запуск.
-
-```bash
-samloader -m SM-S901E -r XXV -i "$IMEI" download -v S901EXXS7CWI1/S901EOXM7CWH6/S901EXXS7CWH6/S901EXXS7CWI1 -O out
-samloader -m SM-S901E -r XXV -i "$IMEI" download -v S901EXXSCEYB1/S901EOXMCEYB1/S901EXXSCEYB1/S901EXXSCEYB1 -O out
-```
-
-Если задан секрет `SAMSUNG_SERIAL`, добавляется `-s`, как в UN1CA.
-
-Заглушка IMEI та же, что в `target/r0q/config.sh` у UN1CA: `350999641234561`. Если FUS её отвергнет, в настройках репозитория добавь секрет `SAMSUNG_IMEI` (15 цифр или TAC из 8 цифр). В репозиторий его не клади.
+FUS на запрос `CWI1` и `CEYB1` отдаёт более новые сборки того же бита (`U7DWK4` и `UCFYDA`). Actions поэтому берёт эти два AP из релиза [firmware-v1](https://github.com/homestuck-ng/hs-ui/releases/tag/firmware-v1). BL и CP в релиз не входят. Если релиза нет, скрипт спрашивает FUS и останавливается, когда PDA не совпал.
 
 ## Сборка
 

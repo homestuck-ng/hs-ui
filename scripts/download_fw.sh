@@ -43,6 +43,31 @@ if ((${#cached[@]})); then
     exit 0
 fi
 
+# FUS no longer returns these old PDAs. The exact AP tars are stored on the
+# firmware-v1 release, split under GitHub's 2GB asset limit.
+RELEASE_BASE="${FW_RELEASE_BASE:-https://github.com/homestuck-ng/hs-ui/releases/download/firmware-v1}"
+man="$DEST/${PDA}.txt"
+if curl -fsSL --retry 3 "$RELEASE_BASE/${PDA}.txt" -o "$man"; then
+    name="$(awk -F= '$1=="name"{print $2}' "$man")"
+    sha="$(awk -F= '$1=="sha256"{print $2}' "$man")"
+    parts="$(awk -F= '$1=="parts"{print $2}' "$man")"
+    out="$DEST/$name"
+    : > "$out"
+    echo "release $PDA ($parts parts)"
+    for ((i = 0; i < parts; i++)); do
+        part="$(printf '%s.part%02d' "$PDA" "$i")"
+        echo "get $part"
+        curl -fL --retry 5 --retry-all-errors -o "$DEST/$part" "$RELEASE_BASE/$part"
+        cat "$DEST/$part" >> "$out"
+        rm -f "$DEST/$part"
+    done
+    echo "$sha  $out" | sha256sum -c -
+    rm -f "$man"
+    echo "downloaded $PDA"
+    exit 0
+fi
+rm -f "$man"
+
 echo "fus download $MODEL $CSC $VER4 -> $DEST ($CONNECTIONS connections)"
 python3 -u "$ROOT/scripts/fast_download.py" \
     --model "$MODEL" \
