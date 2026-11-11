@@ -130,6 +130,10 @@ python3 "$ROOT/scripts/vermagic.py" "$TREE/vendor_dlkm"
 PLAT="$(find "$TREE/system" -path '*/etc/selinux/plat_file_contexts' | head -n 1)"
 VFC="$(find "$TREE/vendor" -path '*/etc/selinux/vendor_file_contexts' | head -n 1)"
 [[ -n "$PLAT" && -n "$VFC" ]] || { echo "file_contexts missing" >&2; exit 1; }
+# Keep durable copies: mk_erofs deletes $TREE/system after system.erofs, but
+# product/system_ext still need the same plat_file_contexts path.
+cp -a "$PLAT" "$WORK/plat_fc"
+PLAT="$WORK/plat_fc"
 cat "$PLAT" "$VFC" > "$WORK/vendor_fc"
 if [[ -f "$MAN/iweaver_v1_manifest.xml" ]]; then
     echo '/(vendor|system/vendor)/etc/vintf/manifest/iweaver_v1_manifest\.xml u:object_r:vendor_configs_file:s0' >> "$WORK/vendor_fc"
