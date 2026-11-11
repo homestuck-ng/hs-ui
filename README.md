@@ -8,7 +8,7 @@
 
 Тот же инструмент, что в UN1CA `sixteen`: [ananjaser1211/samloader](https://github.com/ananjaser1211/samloader). Старый `nlscc/samloader` и `samfirm.js` из форка не используются.
 
-Вызов такой же, как `scripts/download_fw.sh` в UN1CA, только с `-v`, чтобы FUS отдал закреплённую сборку, а не latest:
+Вызов такой же, как `scripts/download_fw.sh` в UN1CA, только с `-v`, чтобы FUS отдал закреплённую сборку, а не latest. В Actions обе прошивки качаются сразу, каждая в 8 соединений, и AP остаётся в кэше на следующий запуск.
 
 ```bash
 samloader -m SM-S901E -r XXV -i "$IMEI" download -v S901EXXS7CWI1/S901EOXM7CWH6/S901EXXS7CWH6/S901EXXS7CWI1 -O out

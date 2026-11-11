@@ -35,6 +35,12 @@ jobs:
             "samloader @ git+https://github.com/ananjaser1211/samloader.git"
           samloader --help
 
+      - name: Restore downloaded firmware
+        uses: actions/cache@v4
+        with:
+          path: work/firmware-cache
+          key: r0q-fw-${{ hashFiles('target/r0q/config.sh') }}
+
       - name: Build the ROM
         env:
           SAMSUNG_IMEI: ${{ secrets.SAMSUNG_IMEI }}

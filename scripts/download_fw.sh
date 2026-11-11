@@ -30,15 +30,27 @@ fi
 
 IMEI="${SAMSUNG_IMEI:-$IMEI_DEFAULT}"
 SERIAL="${SAMSUNG_SERIAL:-}"
+CONNECTIONS="${FW_CONNECTIONS:-8}"
+CACHE="$ROOT/work/firmware-cache/$PDA"
 
 mkdir -p "$DEST"
-echo "samloader download $MODEL $CSC $VER4 -> $DEST"
-args=(-m "$MODEL" -r "$CSC" -i "$IMEI")
-if [[ -n "$SERIAL" ]]; then
-    args+=(-s "$SERIAL")
+shopt -s nullglob
+cached=("$CACHE"/AP_*.tar.md5 "$CACHE"/AP_*.tar)
+if ((${#cached[@]})); then
+    echo "cache hit $PDA"
+    cp -a "${cached[@]}" "$DEST/"
+    echo "downloaded $PDA"
+    exit 0
 fi
-args+=(download -v "$VER4" -O "$DEST")
-samloader "${args[@]}"
+
+echo "fus download $MODEL $CSC $VER4 -> $DEST ($CONNECTIONS connections)"
+python3 -u "$ROOT/scripts/fast_download.py" \
+    --model "$MODEL" \
+    --region "$CSC" \
+    --version "$VER4" \
+    --imei "$IMEI" \
+    --out-dir "$DEST" \
+    --connections "$CONNECTIONS"
 
 shopt -s nullglob
 enc=("$DEST"/*.enc4 "$DEST"/*.enc2)
@@ -63,4 +75,18 @@ echo "AP $AP"
 unzip -o -j "${zips[0]}" "$AP" -d "$DEST"
 # BL and CP stay in the zip and are deleted with it. They are not unpacked.
 rm -f "${zips[0]}"
+ap_file="$(find "$DEST" -maxdepth 1 \( -name 'AP_*.tar.md5' -o -name 'AP_*.tar' \) | head -n 1)"
+limit=$((9 * 1000 * 1000 * 1000))
+ap_size="$(stat -c%s "$ap_file")"
+used=0
+if [[ -d "$ROOT/work/firmware-cache" ]]; then
+    used="$(du -sb "$ROOT/work/firmware-cache" | awk '{print $1}')"
+fi
+if (( ap_size + used < limit )); then
+    mkdir -p "$CACHE"
+    cp -a "$ap_file" "$CACHE/"
+    echo "cached $PDA"
+else
+    echo "not caching $PDA, Actions cache limit is 10GB"
+fi
 echo "downloaded $PDA"

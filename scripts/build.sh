@@ -19,8 +19,21 @@ if ! command -v samloader >/dev/null 2>&1; then
     python3 -m pip install --upgrade --break-system-packages "samloader @ git+https://github.com/ananjaser1211/samloader.git"
 fi
 
-bash "$ROOT/scripts/download_fw.sh" "$SYSTEM_FW" "$SYS"
-bash "$ROOT/scripts/download_fw.sh" "$BOOT_FW" "$BOOT"
+download_tagged() {
+    local tag="$1" fw="$2" dest="$3"
+    bash "$ROOT/scripts/download_fw.sh" "$fw" "$dest" 2>&1 | sed -u "s/^/[$tag] /"
+}
+download_tagged "5.1" "$SYSTEM_FW" "$SYS" &
+pid51=$!
+download_tagged "6.1" "$BOOT_FW" "$BOOT" &
+pid61=$!
+fail=0
+wait "$pid51" || fail=1
+wait "$pid61" || fail=1
+if ((fail)); then
+    echo "firmware download failed" >&2
+    exit 1
+fi
 
 unpack_ap() {
     local dest="$1"
