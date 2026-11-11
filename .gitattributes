@@ -1,0 +1,6 @@
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.list text eol=lf
+prebuilts/updater binary

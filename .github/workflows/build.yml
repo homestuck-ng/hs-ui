@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          sudo docker image prune --all --force || true
+          sudo apt-get clean
+          df -h
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            python3 python3-pip python3-venv \
+            lz4 brotli zip unzip tar \
+            erofs-utils f2fs-tools android-sdk-libsparse-utils \
+            aapt attr curl ca-certificates git
+          sudo modprobe erofs || true
+          sudo modprobe f2fs || true
+
+      - name: Install samloader
+        run: |
+          python3 -m pip install --upgrade --break-system-packages \
+            "samloader @ git+https://github.com/ananjaser1211/samloader.git"
+          samloader --help
+
+      - name: Build the ROM
+        env:
+          SAMSUNG_IMEI: ${{ secrets.SAMSUNG_IMEI }}
+          SAMSUNG_SERIAL: ${{ secrets.SAMSUNG_SERIAL }}
+        run: bash scripts/build.sh
+
+      - name: Upload the zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneUI51_S901E_XXV_hybrid_debloat
+          path: |
+            out/*.zip
+            out/*.sha256
+          compression-level: 0
+          retention-days: 14

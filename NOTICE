@@ -1,0 +1,4 @@
+img2sdat is MIT, Copyright (c) 2021 Andrei Conache. See external/img2sdat/LICENSE.
+The block image helpers under external/img2sdat come from AOSP and are Apache-2.0.
+prebuilts/updater is the AOSP recovery updater (Apache-2.0), the same binary UN1CA ships.
+Firmware download uses https://github.com/ananjaser1211/samloader (GPL-3.0+).

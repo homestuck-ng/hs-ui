@@ -1,0 +1,8 @@
+work/
+out/
+*.zip
+*.enc2
+*.enc4
+samloader.log
+__pycache__/
+*.pyc
