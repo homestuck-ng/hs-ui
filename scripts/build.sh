@@ -2,6 +2,7 @@
 # Build the SM-S901E One UI 5.1 hybrid zip.
 # Firmware is fetched with ananjaser1211/samloader, the same tool UN1CA sixteen calls.
 set -euo pipefail
+export PATH="/usr/local/sbin:/usr/local/bin:${PATH}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck disable=SC1091
@@ -172,7 +173,12 @@ mk_f2fs() {
         rm -f "$image"
         truncate -s "$bytes" "$image"
         mkfs.f2fs -q -f -O extra_attr,compression -l "$label" -o 8 "$image"
-        if sudo sload.f2fs -f "$tree" -t / -P -c -r "$image"; then
+        set +e
+        sload_log="$(sudo sload.f2fs -f "$tree" -t / -P -c -a lz4 -r "$image" 2>&1)"
+        sload_rc=$?
+        set -e
+        printf '%s\n' "$sload_log"
+        if [[ "$sload_rc" == 0 && "$sload_log" != *"not supported"* && "$sload_log" != *"Error:"* ]]; then
             break
         fi
         echo "sload $label did not fit in $bytes" >&2
@@ -206,9 +212,9 @@ echo "=== images ==="
 pad4k "$WORK/product.img"
 pad4k "$WORK/system_ext.img"
 mk_f2fs system "$TREE/system" "$WORK/meta/system.jsonl" "$WORK/system.img" "$SYSTEM_BYTES"
-rm -rf "$TREE/system"
+sudo rm -rf "$TREE/system"
 mk_f2fs vendor "$TREE/vendor" "$WORK/meta/vendor.jsonl" "$WORK/vendor.img" "$VENDOR_BYTES"
-rm -rf "$TREE/vendor"
+sudo rm -rf "$TREE/vendor"
 
 echo "=== vendor_dlkm ==="
 DLKM="$WORK/vendor_dlkm.img"

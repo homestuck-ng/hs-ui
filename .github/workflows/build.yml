@@ -25,9 +25,19 @@ jobs:
             python3 python3-pip python3-venv \
             lz4 brotli zip unzip tar \
             erofs-utils f2fs-tools android-sdk-libsparse-utils \
+            liblz4-dev liblzo2-dev uuid-dev pkg-config \
+            autoconf automake libtool \
             aapt attr curl ca-certificates git openjdk-21-jre-headless
           sudo modprobe erofs || true
           sudo modprobe f2fs || true
+          # Ubuntu's sload.f2fs is built without lz4 and rejects -c.
+          git clone --depth 1 https://github.com/jaegeuk/f2fs-tools.git /tmp/f2fs-tools
+          cd /tmp/f2fs-tools
+          autoreconf -fi
+          ./configure --prefix=/usr/local
+          make -j"$(nproc)"
+          sudo make install
+          sudo ldconfig
 
       - name: Install samloader
         run: |
