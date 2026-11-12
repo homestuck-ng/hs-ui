@@ -9,6 +9,8 @@ import struct
 import subprocess
 import sys
 
+from strip_userdata_encryption import strip_line
+
 PAGE = 4096
 TARGETS = {
     ("vendor", "/vendor"),
@@ -36,6 +38,10 @@ def rewrite(text):
     changed = False
     out = []
     for line in text.splitlines(keepends=True):
+        stripped = strip_line(line)
+        if stripped != line:
+            changed = True
+            line = stripped
         raw = line.strip("\n")
         parts = raw.split()
         if (raw and not raw.startswith("#") and len(parts) >= 4 and parts[2] == "f2fs"
@@ -44,6 +50,8 @@ def rewrite(text):
             nl = "\n" if line.endswith("\n") else ""
             line = "\t".join(parts) + nl
             changed = True
+        if "userdata" in line and not line.lstrip().startswith("#"):
+            print(line.rstrip("\n"))
         out.append(line)
     return "".join(out), changed
 
