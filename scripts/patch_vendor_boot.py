@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Point the first /vendor fstab entry at erofs.
+"""Drop userdata encryption from the vendor_boot fstab.
 
-system, system_ext and product stay f2fs, same as the One UI 5.1 images.
-Init on this bootloader uses only the first entry for a mount point.
+Partitions stay f2fs, same as the images. Init on this bootloader uses the
+first fstab line for a mount point, so the line is not rewritten to erofs.
 """
 import os
 import struct
@@ -12,9 +12,6 @@ import sys
 from strip_userdata_encryption import strip_line
 
 PAGE = 4096
-TARGETS = {
-    ("vendor", "/vendor"),
-}
 
 
 def align(n):
@@ -42,14 +39,6 @@ def rewrite(text):
         if stripped != line:
             changed = True
             line = stripped
-        raw = line.strip("\n")
-        parts = raw.split()
-        if (raw and not raw.startswith("#") and len(parts) >= 4 and parts[2] == "f2fs"
-                and (parts[0], parts[1]) in TARGETS):
-            parts[2] = "erofs"
-            nl = "\n" if line.endswith("\n") else ""
-            line = "\t".join(parts) + nl
-            changed = True
         if "userdata" in line and not line.lstrip().startswith("#"):
             print(line.rstrip("\n"))
         out.append(line)

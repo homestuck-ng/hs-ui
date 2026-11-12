@@ -67,6 +67,7 @@ unsparse() {
 extract_fs() {
     local img="$1"
     local dest="$2"
+    local meta="${3:-}"
     unsparse "$img"
     local kind
     kind="$(python3 "$ROOT/scripts/image_kind.py" "$img")"
@@ -80,12 +81,18 @@ extract_fs() {
                 mkdir -p "$dest"
                 dump.erofs --extract="$dest" "$img"
             fi
+            if [[ -n "$meta" ]]; then
+                python3 "$ROOT/scripts/dump_fs_meta.py" "$dest" "$meta"
+            fi
             ;;
         f2fs|ext4)
             local mnt="$WORK/mnt"
             mkdir -p "$mnt"
             sudo umount "$mnt" 2>/dev/null || true
             sudo mount -o ro,loop "$img" "$mnt"
+            if [[ -n "$meta" ]]; then
+                sudo python3 "$ROOT/scripts/dump_fs_meta.py" "$mnt" "$meta"
+            fi
             sudo cp -a "$mnt"/. "$dest"/
             sudo umount "$mnt"
             sudo chown -R "$(id -u):$(id -g)" "$dest"
@@ -107,24 +114,22 @@ python3 "$ROOT/scripts/lpunpack.py" "$BOOT/super.img" "$BOOT/parts" vendor_dlkm
 rm -f "$SYS/super.img" "$BOOT/super.img"
 
 echo "=== extract filesystems ==="
-extract_fs "$SYS/parts/system.img" "$TREE/system"
+mkdir -p "$WORK/meta"
+extract_fs "$SYS/parts/system.img" "$TREE/system" "$WORK/meta/system.jsonl"
 extract_fs "$SYS/parts/product.img" "$TREE/product"
 extract_fs "$SYS/parts/system_ext.img" "$TREE/system_ext"
-extract_fs "$SYS/parts/vendor.img" "$TREE/vendor"
+extract_fs "$SYS/parts/vendor.img" "$TREE/vendor" "$WORK/meta/vendor.jsonl"
 extract_fs "$BOOT/parts/vendor_dlkm.img" "$TREE/vendor_dlkm"
 unsparse "$SYS/parts/odm.img"
 cp -a "$SYS/parts/odm.img" "$WORK/odm.img"
-# system/product/system_ext stay the stock f2fs images. Repacking them as
-# erofs forces vendor_boot to mount erofs and was not the boot that reached
-# the UI. vendor is repacked below.
-cp -a "$SYS/parts/system.img" "$WORK/system.img"
+# product and system_ext have no patches, so the stock f2fs images stay.
+# system and vendor are rebuilt after the patches, same as UN1CA.
 cp -a "$SYS/parts/product.img" "$WORK/product.img"
 cp -a "$SYS/parts/system_ext.img" "$WORK/system_ext.img"
 rm -rf "$SYS/parts" "$BOOT/parts"
 
 echo "=== vintf ==="
-# Stock system image is shipped as-is, so the debloat pass is not applied.
-echo "system image is stock f2fs; debloat not applied" > "$STAGE/debloat.txt"
+echo "debloat not applied; deknox and vendor fixes are in the f2fs images" > "$STAGE/debloat.txt"
 MAN="$TREE/vendor/etc/vintf/manifest"
 rm -f \
     "$MAN/vendor.samsung.hardware.sehradio_manifest_2_31.xml" \
@@ -132,18 +137,6 @@ rm -f \
     "$MAN/vendor.samsung.hardware.radio.exclude.qcom.xml" \
     "$MAN/iweaver_v1_manifest.xml"
 python3 "$ROOT/scripts/vermagic.py" "$TREE/vendor_dlkm"
-
-PLAT="$(find "$TREE/system" -path '*/etc/selinux/plat_file_contexts' | head -n 1)"
-VFC="$(find "$TREE/vendor" -path '*/etc/selinux/vendor_file_contexts' | head -n 1)"
-[[ -n "$PLAT" && -n "$VFC" ]] || { echo "file_contexts missing" >&2; exit 1; }
-# Keep durable copies: mk_erofs deletes $TREE/system after system.erofs, but
-# product/system_ext still need the same plat_file_contexts path.
-cp -a "$PLAT" "$WORK/plat_fc"
-PLAT="$WORK/plat_fc"
-cat "$PLAT" "$VFC" > "$WORK/vendor_fc"
-if [[ -f "$MAN/iweaver_v1_manifest.xml" ]]; then
-    echo '/(vendor|system/vendor)/etc/vintf/manifest/iweaver_v1_manifest\.xml u:object_r:vendor_configs_file:s0' >> "$WORK/vendor_fc"
-fi
 
 pad4k() {
     python3 - "$1" <<'PY'
@@ -158,16 +151,39 @@ print(path, os.path.getsize(path))
 PY
 }
 
-mk_erofs() {
-    local mount="$1" contexts="$2" image="$3" tree="$4"
+mk_f2fs() {
+    local label="$1" tree="$2" meta="$3" image="$4"
+    local bytes
+    bytes="$(python3 - "$tree" <<'PY'
+import os, sys
+root = sys.argv[1]
+total = 0
+for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+    for name in dirnames + filenames:
+        try:
+            total += os.lstat(os.path.join(dirpath, name)).st_size
+        except OSError:
+            pass
+size = total + total // 5 + 64 * 1024 * 1024
+if size % 4096:
+    size += 4096 - (size % 4096)
+print(max(size, 18882560))
+PY
+)"
+    echo "mkfs.f2fs $label $bytes"
     rm -f "$image"
-    # --all-root drops the extracted uid/gid (GHA extracts as uid 1001) to 0:0.
-    # Stock logd is mode 0550 root:logd, so uid 1036 executes it via the group
-    # bit. After gid becomes 0 that bit no longer applies and init cannot
-    # execv logd (status 127, boot stuck). Mode is fixed on the tree below.
-    mkfs.erofs -zlz4hc,9 -b 4096 --mount-point="$mount" \
-        --file-contexts="$contexts" --all-root -T 1640995200 \
-        "$image" "$tree"
+    truncate -s "$bytes" "$image"
+    if ! mkfs.f2fs -q -f -O extra_attr,quota -l "$label" -o 8 "$image"; then
+        truncate -s "$bytes" "$image"
+        mkfs.f2fs -q -f -O extra_attr -l "$label" -o 8 "$image"
+    fi
+    local mnt="$WORK/mnt"
+    mkdir -p "$mnt"
+    sudo umount "$mnt" 2>/dev/null || true
+    sudo mount -t f2fs -o loop "$image" "$mnt"
+    sudo cp -a "$tree"/. "$mnt"/
+    sudo python3 "$ROOT/scripts/apply_fs_meta.py" "$mnt" "$meta"
+    sudo umount "$mnt"
     pad4k "$image"
 }
 
@@ -180,12 +196,11 @@ echo "=== userdata stays plain f2fs ==="
 python3 "$ROOT/scripts/strip_userdata_encryption.py" "$TREE/vendor"
 
 echo "=== images ==="
-# Stock f2fs keeps logd as root:logd mode 0550, which the service can exec.
-rm -rf "$TREE/system" "$TREE/product" "$TREE/system_ext"
-pad4k "$WORK/system.img"
 pad4k "$WORK/product.img"
 pad4k "$WORK/system_ext.img"
-mk_erofs /vendor "$WORK/vendor_fc" "$WORK/vendor.erofs" "$TREE/vendor"
+mk_f2fs system "$TREE/system" "$WORK/meta/system.jsonl" "$WORK/system.img"
+rm -rf "$TREE/system" "$TREE/product" "$TREE/system_ext"
+mk_f2fs vendor "$TREE/vendor" "$WORK/meta/vendor.jsonl" "$WORK/vendor.img"
 rm -rf "$TREE/vendor"
 
 echo "=== vendor_dlkm ==="
@@ -225,7 +240,7 @@ rm -rf "$SYS" "$BOOT" "$WORK/vbpatch"
 ln -sfn "$WORK/system.img" "$STAGE/system.img"
 ln -sfn "$WORK/product.img" "$STAGE/product.img"
 ln -sfn "$WORK/system_ext.img" "$STAGE/system_ext.img"
-ln -sfn "$WORK/vendor.erofs" "$STAGE/vendor.img"
+ln -sfn "$WORK/vendor.img" "$STAGE/vendor.img"
 ln -sfn "$WORK/odm.img" "$STAGE/odm.img"
 ln -sfn "$DLKM" "$STAGE/vendor_dlkm.img"
 python3 "$ROOT/scripts/pack_meta.py" "$STAGE" "$GROUP_SIZE" "$SUPER_SIZE"
@@ -243,7 +258,7 @@ echo "=== dat ==="
 to_dat system "$WORK/system.img"
 to_dat product "$WORK/product.img"
 to_dat system_ext "$WORK/system_ext.img"
-to_dat vendor "$WORK/vendor.erofs"
+to_dat vendor "$WORK/vendor.img"
 to_dat odm "$WORK/odm.img"
 to_dat vendor_dlkm "$DLKM"
 

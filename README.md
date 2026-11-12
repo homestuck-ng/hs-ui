@@ -14,7 +14,7 @@ Actions → Build → Run workflow. Скачанный с Actions файл — z
 
 Один zip. Поверх уже стоящей системы его можно шить без набора отдельных патчей.
 
-system, product, system_ext и odm остаются f2fs из One UI 5.1. vendor собирается erofs с `plat_file_contexts`, затем `vendor_file_contexts`. Дубли VINTF (`sehradio`, `radio_manifest`, `radio.exclude.qcom`, `iweaver`) удаляются, иначе `display.allocator` выходит с кодом 234 и `surfaceflinger` падает. `vendor_dlkm` берётся из 6.1, vermagic совпадает с ядром CEYB1. В `vendor_boot` на erofs переводится только первая строка `/vendor`. У vbmeta флаги `00 00 00 03`.
+Порядок как в UN1CA. Сначала с раздела снимаются uid, gid, mode и SELinux-метки. Потом на дерево накладываются deknox, multi-user, Bluetooth, вырезание дублей VINTF и снятие шифрования `/data`. Потом system и vendor заново собираются в f2fs, и метки возвращаются на место. product, system_ext и odm не патчатся, поэтому остаются стоковым f2fs. `vendor_dlkm` из 6.1 получает vermagic ядра CEYB1. `vendor_boot` остаётся на f2fs: отдельный патч типа раздела больше не нужен. У vbmeta флаги `00 00 00 03`.
 
 `/data` не шифруется: из `/vendor/etc/fstab.qcom` и из копии в `vendor_boot` убраны `fileencryption`, `metadata_encryption` и `keydirectory`. Один `keydirectory` уже включает шифрование метаданных. Format Data для этого не нужен. Если раньше init уже создал ключ в `/metadata/vold/metadata_encryption`, сотри этот каталог перед первой загрузкой этого zip, иначе старый ключ не совпадёт с разделом.
 
