@@ -40,7 +40,7 @@ Files are in `recovery/`.
 
 ### 3. ROM
 
-Actions, workflow Build. The download is a zip wrapper. Flash the inner `OneUI51_S901E_XXV_hybrid.zip`. It contains `META-INF`. The wrapper will not flash.
+Actions, workflow Build. Download `OneUI51_S901E_XXV_hybrid.zip` and flash that file. It already contains `META-INF`.
 
 Dirty flash is supported. Data is not formatted and is not encrypted. If `/metadata/vold/metadata_encryption` already exists, delete that directory before the first boot.
 
