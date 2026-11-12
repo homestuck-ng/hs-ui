@@ -60,7 +60,7 @@ def main():
         removed.append(pkg + " " + os.path.relpath(app_dir, root))
         shutil.rmtree(app_dir)
         deleted.add(app_dir)
-    with open(log_path, "w", encoding="utf-8") as f:
+    with open(log_path, "a", encoding="utf-8") as f:
         f.write("\n".join(removed) + ("\n" if removed else ""))
     for pkg in ("com.sec.unifiedwfc", "com.sec.epdg"):
         if pkg not in seen:

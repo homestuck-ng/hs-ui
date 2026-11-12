@@ -245,20 +245,39 @@ PY
 }
 
 echo "=== framework patches ==="
+case "${DEBLOAT:-un1ca}" in
+    un1ca|extended) ;;
+    *)
+        echo "DEBLOAT must be un1ca or extended" >&2
+        exit 1
+        ;;
+esac
+echo "debloat mode ${DEBLOAT:-un1ca}"
 python3 "$ROOT/scripts/enable_multiuser.py" "$TREE/system"
 python3 "$ROOT/scripts/patch_bluetooth_lib.py" "$TREE"
-python3 "$ROOT/scripts/debloat.py" "$TREE" \
-    "$ROOT/target/r0q/remove.list" "$ROOT/target/r0q/keep.list" "$STAGE/debloat.txt"
+: > "$STAGE/debloat.txt"
+python3 "$ROOT/scripts/apply_un1ca_debloat.py" "$TREE" \
+    "$ROOT/target/r0q/un1ca_debloat.list" "$STAGE/debloat.txt"
+if [[ "${DEBLOAT:-un1ca}" == "extended" ]]; then
+    python3 "$ROOT/scripts/debloat.py" "$TREE" \
+        "$ROOT/target/r0q/remove.list" "$ROOT/target/r0q/keep.list" "$STAGE/debloat.txt"
+fi
 python3 "$ROOT/scripts/apply_deknox.py" "$TREE"
-cp -a "$ROOT/target/r0q/remove.list" "$STAGE/remove.list"
-python3 - "$ROOT/target/r0q/remove.list" "$STAGE/debloat_data.sh" <<'PY'
+python3 - "$STAGE/debloat.txt" "$STAGE/debloat_data.sh" "$STAGE/remove.list" <<'PY'
 import sys
-src, dest = sys.argv[1], sys.argv[2]
+log_path, script_path, list_path = sys.argv[1:4]
 pkgs = []
-for line in open(src, encoding="utf-8"):
+seen = set()
+for line in open(log_path, encoding="utf-8"):
     line = line.strip()
-    if line and not line.startswith("#"):
-        pkgs.append(line)
+    if not line or line.startswith("#"):
+        continue
+    pkg = line.split()[0]
+    if pkg in seen or "." not in pkg:
+        continue
+    seen.add(pkg)
+    pkgs.append(pkg)
+open(list_path, "w", encoding="utf-8").write("\n".join(pkgs) + ("\n" if pkgs else ""))
 body = """#!/system/bin/sh
 if [ ! -d /data/app ]; then
   echo "data not mounted, skip"
@@ -276,7 +295,7 @@ find /data/app -mindepth 2 -maxdepth 2 -type d 2>/dev/null | while read -r dir; 
 done
 rm -rf "/data/data/$pkg" "/data/user/0/$pkg" "/data/user_de/0/$pkg"
 """
-open(dest, "w", newline="\n").write(body)
+open(script_path, "w", newline="\n").write(body)
 print("debloat_data", len(pkgs))
 PY
 chmod 755 "$STAGE/debloat_data.sh"
@@ -357,7 +376,7 @@ to_dat vendor_dlkm "$DLKM"
 cp -a "$ROOT/prebuilts/updater" "$STAGE/META-INF/com/google/android/update-binary"
 chmod 755 "$STAGE/META-INF/com/google/android/update-binary"
 
-ZIP="$OUT/OneUI51_S901E_XXV_hybrid_debloat.zip"
+ZIP="$OUT/OneUI51_S901E_XXV_hybrid_${DEBLOAT:-un1ca}.zip"
 rm -f "$ZIP"
 (
     cd "$STAGE"
