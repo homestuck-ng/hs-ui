@@ -4,7 +4,35 @@
 
 Один универсальный архив One UI 5.1 для SM-S901E (r0q, XXV) с уже прошитым загрузчиком binary C (`S901EXXSCEYB1`). BL и CP не шьются и не скачиваются.
 
-Система, vendor, product, system_ext и odm берутся из One UI 5.1 `S901EXXS7CWI1`. boot, dtbo, vendor_boot и модули `vendor_dlkm` берутся из One UI 6.1 `S901EXXSCEYB1`. Свежий XXV `S901EXXSEGZH4` (binary G) эта сборка не качает.
+Система, vendor, product, system_ext и odm берутся из One UI 5.1 `S901EXXS7CWI1`. boot, dtbo, vendor_boot и модули `vendor_dlkm` берутся из One UI 6.1 `S901EXXSCEYB1`. Свежий XXV `S901EXXSEGZH4` (binary G) эта сборка не качает и в основу его ставить нельзя: бит загрузчика выше C.
+
+## Основа
+
+Перед HS-UI телефон должен стоять на One UI 6.1 binary C, сборка `S901EXXSCEYB1`, регион XXV.
+
+Страница прошивки на SamFW: [SM-S901E XXV S901EXXSCEYB1](https://samfw.com/firmware/SM-S901E/XXV/S901EXXSCEYB1).
+
+В Odin кладутся четыре файла этой сборки: BL, AP, CP и HOME_CSC. HOME_CSC сохраняет данные. Обычный CSC стирает данные. Re-Partition выключен. Прошивки с битом выше C не подходят.
+
+Если в сведениях о ПО уже указан `S901EXXSCEYB1`, основу заново шить не нужно.
+
+## Рекавери
+
+Файлы лежат в `recovery/`.
+
+- `OrangeFox-R12.0_A12-Unofficial-r0q.img.tar` ставится через Odin. Это tar из `OrangeFox-R12.0_A12-Unofficial-r0q.zip`. Сам zip больше 100 МБ, GitHub такой файл в репозиторий не принимает.
+- `patched-vb.tar` содержит `vbmeta.img` с флагами `00 00 00 03`.
+
+Порядок:
+
+1. Включи OEM-разблокировку в параметрах разработчика и перезагрузись в Download Mode. На выключенном телефоне зажми обе кнопки громкости и подключи кабель, затем подтверди кнопкой громкости вверх.
+2. Открой Odin. Auto Reboot выключи. Re-Partition выключи.
+3. В AP положи `OrangeFox-R12.0_A12-Unofficial-r0q.img.tar`.
+4. В USERDATA положи `patched-vb.tar`.
+5. Нажми Start и дождись PASS.
+6. Не дай телефону загрузиться в систему. Зажми громкость вниз и питание, пока экран не погаснет, и сразу зажми громкость вверх и питание, чтобы открыть OrangeFox. Если загрузится обычная система, стоковый рекавери вернётся на место и шаг придётся повторить.
+
+Дальше в OrangeFox шьётся внутренний zip HS-UI. BL и CP этой прошивки не трогай.
 
 ## Что прошивать
 
