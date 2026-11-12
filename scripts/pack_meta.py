@@ -76,13 +76,7 @@ def main():
         'getprop("ro.boot.em.model") == "SM-S901E" || getprop("ro.product.device") == "r0q" || getprop("ro.product.device") == "r0qxxx" || abort("E3004: This package is for r0q / SM-S901E.");',
         'ui_print("OneUI 5.1 hybrid r0q, binary C boot. Do not flash BL or CP.");',
         'ui_print("Wi-Fi calling, location, emergency, Knox Guard and DeX stay.");',
-        'unmount("/system");',
-        'unmount("/system_root");',
-        'unmount("/vendor");',
-        'unmount("/product");',
-        'unmount("/system_ext");',
-        'unmount("/odm");',
-        'unmount("/vendor_dlkm");',
+        'run_program("/system/bin/sh", "-c", "umount -l /system /system_root /vendor /product /system_ext /odm /vendor_dlkm; true");',
         'assert(update_dynamic_partitions(package_extract_file("dynamic_partitions_op_list"), package_extract_file("unsparse_super_empty.img")));',
     ]
     for name in ORDER:
