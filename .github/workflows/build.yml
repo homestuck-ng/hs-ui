@@ -34,7 +34,10 @@ jobs:
           git clone --depth 1 https://github.com/jaegeuk/f2fs-tools.git /tmp/f2fs-tools
           cd /tmp/f2fs-tools
           autoreconf -fi
+          # glibc no longer exposes major/minor from sys/types.h.
+          export CFLAGS="-O2 -include sys/sysmacros.h"
           ./configure --prefix=/usr/local
+          grep -q 'HAVE_LIBLZ4 1' config.h
           make -j"$(nproc)"
           sudo make install
           sudo ldconfig
