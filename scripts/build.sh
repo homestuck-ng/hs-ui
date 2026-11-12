@@ -154,11 +154,12 @@ print(path, os.path.getsize(path))
 PY
 }
 
-# Distro sload has no lz4, and current upstream sload has no -c at all.
-# Pack the plain files with the distro tools. The image is sized from the
-# tree, not from the compressed stock image, and it is not mounted for the copy.
+# Distro sload exits 1 after a good pack because fsck rewrites SIT.
+# The line "Max image size" is the real used size. The first guess is larger
+# than the super group, so a successful pack is rebuilt at that size.
 mk_f2fs() {
     local label="$1" tree="$2" meta="$3" image="$4" base="$5"
+    local logfile="$WORK/meta/sload-$label.log"
     sudo python3 "$ROOT/scripts/apply_fs_meta.py" "$tree" "$meta" owners
     local bytes
     bytes="$(python3 - "$tree" <<'PY'
@@ -179,26 +180,40 @@ print(((size + seg - 1) // seg) * seg)
 PY
 )"
     echo "sload $label tree=$bytes stock=$base"
-    local extra
-    for extra in 0 536870912; do
-        local this=$((bytes + extra))
-        echo "sload $label $this"
-        rm -f "$image"
-        truncate -s "$this" "$image"
-        /usr/sbin/mkfs.f2fs -q -f -l "$label" -o 8 "$image"
+    try_sload() {
+        local this="$1"
+        local img="$2"
+        local src="$3"
+        local logfile="$4"
+        local name="$5"
+        echo "sload $name $this"
+        rm -f "$img"
+        truncate -s "$this" "$img"
+        /usr/sbin/mkfs.f2fs -q -f -l "$name" -o 8 "$img"
         set +e
-        sload_log="$(sudo /usr/sbin/sload.f2fs -f "$tree" -t / -P "$image" 2>&1)"
-        sload_rc=$?
+        sudo /usr/sbin/sload.f2fs -f "$src" -t / -P "$img" >"$logfile" 2>&1
+        local rc=$?
         set -e
-        printf '%s\n' "$sload_log"
-        if [[ "$sload_rc" == 0 && "$sload_log" != *"Error:"* && "$sload_log" != *"No space"* ]]; then
-            break
+        cat "$logfile"
+        if [[ "$rc" -le 1 ]] && grep -q "Max image size:" "$logfile"; then
+            return 0
         fi
-        echo "sload $label did not fit in $this" >&2
-        if [[ "$extra" != 0 ]]; then
-            exit 1
+        echo "sload $name failed in $this" >&2
+        return 1
+    }
+    try_sload "$bytes" "$image" "$tree" "$logfile" "$label" \
+        || try_sload "$((bytes + 536870912))" "$image" "$tree" "$logfile" "$label" \
+        || exit 1
+    local max_mb target current
+    max_mb="$(sed -n 's/.*Max image size: \([0-9][0-9]*\) MB.*/\1/p' "$logfile" | tail -n 1)"
+    if [[ -n "$max_mb" ]]; then
+        target="$(python3 -c "mb=int('$max_mb'); seg=2*1024*1024; size=mb*1024*1024+96*1024*1024; print(((size+seg-1)//seg)*seg)")"
+        current="$(stat -c %s "$image")"
+        if [[ "$target" -lt "$current" ]]; then
+            echo "shrink $label $current -> $target from ${max_mb} MB"
+            try_sload "$target" "$image" "$tree" "$logfile" "$label" || exit 1
         fi
-    done
+    fi
     local mnt="$WORK/mnt"
     mkdir -p "$mnt"
     sudo umount "$mnt" 2>/dev/null || true
