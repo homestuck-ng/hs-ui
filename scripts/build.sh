@@ -154,41 +154,48 @@ print(path, os.path.getsize(path))
 PY
 }
 
-align_seg() {
-    python3 -c "n=int('$1'); seg=2*1024*1024; print(((n+seg-1)//seg)*seg)"
-}
-
-# sload.f2fs writes the image itself. Mounting a fresh mkfs and copying
-# into it returned EIO on the first directory when quota was enabled and
-# the file was sized from the uncompressed tree.
+# Distro sload has no lz4, and current upstream sload has no -c at all.
+# Pack the plain files with the distro tools. The image is sized from the
+# tree, not from the compressed stock image, and it is not mounted for the copy.
 mk_f2fs() {
     local label="$1" tree="$2" meta="$3" image="$4" base="$5"
-    if [[ -x /usr/local/sbin/sload.f2fs ]]; then
-        sload_bin=/usr/local/sbin/sload.f2fs
-    else
-        sload_bin="$(command -v sload.f2fs)"
-    fi
-    [[ -n "$sload_bin" ]] || { echo "sload.f2fs missing" >&2; exit 1; }
     sudo python3 "$ROOT/scripts/apply_fs_meta.py" "$tree" "$meta" owners
-    local bytes extra
-    bytes="$(align_seg "$((base + 64 * 1024 * 1024))")"
-    for extra in 0 268435456; do
-        bytes="$(align_seg "$((base + 64 * 1024 * 1024 + extra))")"
-        echo "sload $label $bytes"
+    local bytes
+    bytes="$(python3 - "$tree" <<'PY'
+import os, sys
+root = sys.argv[1]
+total = 0
+files = 0
+for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+    for name in dirnames + filenames:
+        files += 1
+        try:
+            total += os.lstat(os.path.join(dirpath, name)).st_size
+        except OSError:
+            pass
+size = total + 256 * 1024 * 1024 + files * 4096
+seg = 2 * 1024 * 1024
+print(((size + seg - 1) // seg) * seg)
+PY
+)"
+    echo "sload $label tree=$bytes stock=$base"
+    local extra
+    for extra in 0 536870912; do
+        local this=$((bytes + extra))
+        echo "sload $label $this"
         rm -f "$image"
-        truncate -s "$bytes" "$image"
-        /usr/sbin/mkfs.f2fs -q -f -O extra_attr,compression -l "$label" -o 8 "$image"
+        truncate -s "$this" "$image"
+        /usr/sbin/mkfs.f2fs -q -f -l "$label" -o 8 "$image"
         set +e
-        sload_log="$(sudo "$sload_bin" -f "$tree" -t / -P -c -a lz4 -r "$image" 2>&1)"
+        sload_log="$(sudo /usr/sbin/sload.f2fs -f "$tree" -t / -P "$image" 2>&1)"
         sload_rc=$?
         set -e
         printf '%s\n' "$sload_log"
-        if [[ "$sload_rc" == 0 && "$sload_log" != *"not supported"* && "$sload_log" != *"Error:"* ]]; then
+        if [[ "$sload_rc" == 0 && "$sload_log" != *"Error:"* && "$sload_log" != *"No space"* ]]; then
             break
         fi
-        echo "sload $label did not fit in $bytes" >&2
+        echo "sload $label did not fit in $this" >&2
         if [[ "$extra" != 0 ]]; then
-            sudo dmesg | tail -n 20 >&2 || true
             exit 1
         fi
     done

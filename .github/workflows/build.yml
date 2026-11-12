@@ -25,28 +25,9 @@ jobs:
             python3 python3-pip python3-venv \
             lz4 brotli zip unzip tar \
             erofs-utils f2fs-tools android-sdk-libsparse-utils \
-            liblz4-dev liblzo2-dev uuid-dev pkg-config \
-            autoconf automake libtool \
             aapt attr curl ca-certificates git openjdk-21-jre-headless
           sudo modprobe erofs || true
           sudo modprobe f2fs || true
-          # Ubuntu's sload.f2fs is built without lz4 and rejects -c.
-          git clone --depth 1 https://github.com/jaegeuk/f2fs-tools.git /tmp/f2fs-tools
-          cd /tmp/f2fs-tools
-          autoreconf -fi
-          # glibc hides major/minor and off64_t unless the feature macros are set.
-          export CFLAGS="-O2 -D_GNU_SOURCE -D_LARGEFILE64_SOURCE -include sys/sysmacros.h"
-          export LIBS="-llz4 -llzo2"
-          ./configure --prefix=/usr/local
-          make -j"$(nproc)"
-          sudo make install
-          sudo ldconfig
-          # The distro mkfs accepts the compression feature. The distro sload does not.
-          mkdir -p /tmp/sload-src
-          echo hi > /tmp/sload-src/a
-          truncate -s 64M /tmp/sload.img
-          /usr/sbin/mkfs.f2fs -f -O extra_attr,compression /tmp/sload.img
-          /usr/local/sbin/sload.f2fs -f /tmp/sload-src -t / -c -a lz4 -r /tmp/sload.img
 
       - name: Install samloader
         run: |
