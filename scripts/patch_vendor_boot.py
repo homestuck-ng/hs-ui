@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Rewrite f2fs to erofs for the first fstab entry of each logical partition."""
+"""Point the first /vendor fstab entry at erofs.
+
+system, system_ext and product stay f2fs, same as the One UI 5.1 images.
+Init on this bootloader uses only the first entry for a mount point.
+"""
 import os
 import struct
 import subprocess
@@ -7,9 +11,6 @@ import sys
 
 PAGE = 4096
 TARGETS = {
-    ("system", "/system"),
-    ("system_ext", "/system_ext"),
-    ("product", "/product"),
     ("vendor", "/vendor"),
 }
 

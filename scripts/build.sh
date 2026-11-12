@@ -114,11 +114,17 @@ extract_fs "$SYS/parts/vendor.img" "$TREE/vendor"
 extract_fs "$BOOT/parts/vendor_dlkm.img" "$TREE/vendor_dlkm"
 unsparse "$SYS/parts/odm.img"
 cp -a "$SYS/parts/odm.img" "$WORK/odm.img"
+# system/product/system_ext stay the stock f2fs images. Repacking them as
+# erofs forces vendor_boot to mount erofs and was not the boot that reached
+# the UI. vendor is repacked below.
+cp -a "$SYS/parts/system.img" "$WORK/system.img"
+cp -a "$SYS/parts/product.img" "$WORK/product.img"
+cp -a "$SYS/parts/system_ext.img" "$WORK/system_ext.img"
 rm -rf "$SYS/parts" "$BOOT/parts"
 
-echo "=== debloat and vintf ==="
-python3 "$ROOT/scripts/debloat.py" "$TREE" \
-    "$ROOT/target/r0q/remove.list" "$ROOT/target/r0q/keep.list" "$STAGE/debloat.txt"
+echo "=== vintf ==="
+# Stock system image is shipped as-is, so the debloat pass is not applied.
+echo "system image is stock f2fs; debloat not applied" > "$STAGE/debloat.txt"
 MAN="$TREE/vendor/etc/vintf/manifest"
 rm -f \
     "$MAN/vendor.samsung.hardware.sehradio_manifest_2_31.xml" \
@@ -173,22 +179,12 @@ python3 "$ROOT/scripts/apply_deknox.py" "$TREE"
 echo "=== userdata stays plain f2fs ==="
 python3 "$ROOT/scripts/strip_userdata_encryption.py" "$TREE/vendor"
 
-echo "=== erofs ==="
-# 0550 root:logd -> 0755 root:root. See mk_erofs comment.
-logd="$TREE/system/system/bin/logd"
-if [ -f "$logd" ]; then
-    chmod 0755 "$logd"
-    echo "logd mode $(stat -c %a "$logd")"
-else
-    echo "logd missing: $logd" >&2
-    exit 1
-fi
-mk_erofs / "$PLAT" "$WORK/system.erofs" "$TREE/system"
-rm -rf "$TREE/system"
-mk_erofs /product "$PLAT" "$WORK/product.erofs" "$TREE/product"
-rm -rf "$TREE/product"
-mk_erofs /system_ext "$PLAT" "$WORK/system_ext.erofs" "$TREE/system_ext"
-rm -rf "$TREE/system_ext"
+echo "=== images ==="
+# Stock f2fs keeps logd as root:logd mode 0550, which the service can exec.
+rm -rf "$TREE/system" "$TREE/product" "$TREE/system_ext"
+pad4k "$WORK/system.img"
+pad4k "$WORK/product.img"
+pad4k "$WORK/system_ext.img"
 mk_erofs /vendor "$WORK/vendor_fc" "$WORK/vendor.erofs" "$TREE/vendor"
 rm -rf "$TREE/vendor"
 
@@ -226,9 +222,9 @@ python3 "$ROOT/scripts/vbmeta_patch.py" "$SYS/vbmeta.img" "$STAGE/vbmeta.img"
 python3 "$ROOT/scripts/vbmeta_patch.py" "$SYS/vbmeta_system.img" "$STAGE/vbmeta_system.img"
 rm -rf "$SYS" "$BOOT" "$WORK/vbpatch"
 
-ln -sfn "$WORK/system.erofs" "$STAGE/system.img"
-ln -sfn "$WORK/product.erofs" "$STAGE/product.img"
-ln -sfn "$WORK/system_ext.erofs" "$STAGE/system_ext.img"
+ln -sfn "$WORK/system.img" "$STAGE/system.img"
+ln -sfn "$WORK/product.img" "$STAGE/product.img"
+ln -sfn "$WORK/system_ext.img" "$STAGE/system_ext.img"
 ln -sfn "$WORK/vendor.erofs" "$STAGE/vendor.img"
 ln -sfn "$WORK/odm.img" "$STAGE/odm.img"
 ln -sfn "$DLKM" "$STAGE/vendor_dlkm.img"
@@ -244,9 +240,9 @@ to_dat() {
 }
 
 echo "=== dat ==="
-to_dat system "$WORK/system.erofs"
-to_dat product "$WORK/product.erofs"
-to_dat system_ext "$WORK/system_ext.erofs"
+to_dat system "$WORK/system.img"
+to_dat product "$WORK/product.img"
+to_dat system_ext "$WORK/system_ext.img"
 to_dat vendor "$WORK/vendor.erofs"
 to_dat odm "$WORK/odm.img"
 to_dat vendor_dlkm "$DLKM"

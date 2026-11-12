@@ -12,8 +12,12 @@ FUS на запрос `CWI1` и `CEYB1` отдаёт более новые сб�
 
 Actions → Build → Run workflow. Скачанный с Actions файл — zip-обёртка. Распакуй её на ПК и в recovery кидай внутренний `OneUI51_S901E_XXV_hybrid_debloat.zip` (внутри есть `META-INF`). Саму обёртку recovery не примет: `invalid zip file format`.
 
-Образы собираются через `mkfs.erofs` с `plat_file_contexts`, как в UN1CA. Перед сборкой system включается multi-user, как в `unica/mods/multiuser`, и Bluetooth-библиотека патчится теми же arm64-последовательностями, что у BluetoothLibraryPatcher. В `vendor_boot` первый fstab для system, system_ext, product и vendor стоит как erofs. У vbmeta флаги `00 00 00 03`.
+Один zip. Поверх уже стоящей системы его можно шить без набора отдельных патчей.
 
-Wi-Fi Calling, Knox Guard, местоположение, экстренные вызовы, DeX и Pass остаются. Bixby, Facebook, AR, игры и лишний Google-софт вырезаны.
+system, product, system_ext и odm остаются f2fs из One UI 5.1. vendor собирается erofs с `plat_file_contexts`, затем `vendor_file_contexts`. Дубли VINTF (`sehradio`, `radio_manifest`, `radio.exclude.qcom`, `iweaver`) удаляются, иначе `display.allocator` выходит с кодом 234 и `surfaceflinger` падает. `vendor_dlkm` берётся из 6.1, vermagic совпадает с ядром CEYB1. В `vendor_boot` на erofs переводится только первая строка `/vendor`. У vbmeta флаги `00 00 00 03`.
 
-В рекавери не прошивай BL и CP. На чистую установку нужен Format Data. FBE на этом гибриде не поднимается.
+`/data` не шифруется: из vendor fstab убраны `fileencryption`, `metadata_encryption` и `keydirectory`. Format Data для этого не нужен. Если раньше init уже создал ключ в `/metadata/vold/metadata_encryption`, сотри этот каталог перед первой загрузкой этого zip, иначе старый ключ не совпадёт с разделом.
+
+Wi-Fi Calling, Knox Guard, местоположение, экстренные вызовы, DeX и Pass остаются.
+
+В рекавери не прошивай BL и CP. Скачанный с Actions файл — zip-обёртка. Внутрь recovery клади архив, в котором есть `META-INF`.
