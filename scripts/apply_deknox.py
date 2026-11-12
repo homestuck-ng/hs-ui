@@ -28,6 +28,9 @@ from smali_tools import assemble, disassemble, tool_paths
 # links libknox_filemanager.so. Deleting any of those makes the linker
 # fail before main and init reboots with reboot,vold-failed.
 # Daemons (dualdard, sdp_cryptod) stay deleted.
+# libandroid_servers.so still NEEDs libtlc_blockchain_keystore.so. Deleting
+# that library makes SystemServer throw UnsatisfiedLinkError, zygote restarts,
+# and bootchecker reboots to recovery. The blockchain keystore stack stays.
 DELETE_REL = [
     "app/BlockchainBasicKit",
     "bin/dualdard",
@@ -49,24 +52,15 @@ DELETE_REL = [
     "framework/service-samsung-blockchain.jar",
     "lib/android.hardware.weaver@1.0.so",
     "lib/hidl_comm_ddar_client.so",
-    "lib/hidl_tlc_blockchain_comm_client.so",
     "lib/libhermes_cred.so",
     "lib/libmdfpp_req.so",
     "lib/libsdp_kekm.so",
-    "lib/libtlc_blockchain_comm.so",
-    "lib/libtlc_blockchain_direct_comm.so",
-    "lib/libtlc_blockchain_keystore.so",
-    "lib/vendor.samsung.hardware.tlc.blockchain@1.0.so",
     "lib/vendor.samsung.hardware.tlc.ddar@1.0.so",
     "lib64/android.hardware.weaver@1.0.so",
     "lib64/hidl_comm_ddar_client.so",
-    "lib64/hidl_tlc_blockchain_comm_client.so",
+    "lib64/libhermes_cred.so",
     "lib64/libmdfpp_req.so",
     "lib64/libsdp_kekm.so",
-    "lib64/libtlc_blockchain_comm.so",
-    "lib64/libtlc_blockchain_direct_comm.so",
-    "lib64/libtlc_blockchain_keystore.so",
-    "lib64/vendor.samsung.hardware.tlc.blockchain@1.0.so",
     "lib64/vendor.samsung.hardware.tlc.ddar@1.0.so",
     "priv-app/HdmApk",
     "priv-app/KnoxAIFrameworkApp",
