@@ -204,16 +204,6 @@ PY
     try_sload "$bytes" "$image" "$tree" "$logfile" "$label" \
         || try_sload "$((bytes + 536870912))" "$image" "$tree" "$logfile" "$label" \
         || exit 1
-    local max_mb target current
-    max_mb="$(sed -n 's/.*Max image size: \([0-9][0-9]*\) MB.*/\1/p' "$logfile" | tail -n 1)"
-    if [[ -n "$max_mb" ]]; then
-        target="$(python3 -c "mb=int('$max_mb'); seg=2*1024*1024; size=int(mb*1024*1024/0.99)+128*1024*1024; print(((size+seg-1)//seg)*seg)")"
-        current="$(stat -c %s "$image")"
-        if [[ "$target" -lt "$current" ]]; then
-            echo "shrink $label $current -> $target from ${max_mb} MB"
-            try_sload "$target" "$image" "$tree" "$logfile" "$label" || exit 1
-        fi
-    fi
     local mnt="$WORK/mnt"
     mkdir -p "$mnt"
     sudo umount "$mnt" 2>/dev/null || true
@@ -224,6 +214,20 @@ PY
     fi
     sudo python3 "$ROOT/scripts/apply_fs_meta.py" "$mnt" "$meta"
     sudo umount "$mnt"
+    # A second sload into a smaller image crashes. resize.f2fs keeps the
+    # packed data and drops the unused tail so the super group still fits.
+    local max_mb target current sectors
+    max_mb="$(sed -n 's/.*Max image size: \([0-9][0-9]*\) MB.*/\1/p' "$logfile" | tail -n 1)"
+    if [[ -n "$max_mb" ]]; then
+        target="$(python3 -c "mb=int('$max_mb'); seg=2*1024*1024; size=(mb+128)*1024*1024; print(((size+seg-1)//seg)*seg)")"
+        current="$(stat -c %s "$image")"
+        if [[ "$target" -lt "$current" ]]; then
+            sectors="$((target / 512))"
+            echo "resize $label $current -> $target from ${max_mb} MB ($sectors sectors)"
+            /usr/sbin/resize.f2fs -t "$sectors" "$image"
+            truncate -s "$target" "$image"
+        fi
+    fi
     pad4k "$image"
 }
 
