@@ -41,13 +41,12 @@ jobs:
           make -j"$(nproc)"
           sudo make install
           sudo ldconfig
-          mkfs=/usr/local/sbin/mkfs.f2fs
-          sload=/usr/local/sbin/sload.f2fs
+          # The distro mkfs accepts the compression feature. The distro sload does not.
           mkdir -p /tmp/sload-src
           echo hi > /tmp/sload-src/a
           truncate -s 64M /tmp/sload.img
-          "$mkfs" -f -O compression /tmp/sload.img
-          "$sload" -f /tmp/sload-src -t / -c -a lz4 -r /tmp/sload.img
+          /usr/sbin/mkfs.f2fs -f -O extra_attr,compression /tmp/sload.img
+          /usr/local/sbin/sload.f2fs -f /tmp/sload-src -t / -c -a lz4 -r /tmp/sload.img
 
       - name: Install samloader
         run: |
