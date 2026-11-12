@@ -34,8 +34,9 @@ jobs:
           git clone --depth 1 https://github.com/jaegeuk/f2fs-tools.git /tmp/f2fs-tools
           cd /tmp/f2fs-tools
           autoreconf -fi
-          # glibc no longer exposes major/minor from sys/types.h.
-          export CFLAGS="-O2 -include sys/sysmacros.h"
+          # glibc hides major/minor and off64_t unless the feature macros are set.
+          export CFLAGS="-O2 -D_GNU_SOURCE -D_LARGEFILE64_SOURCE -include sys/sysmacros.h"
+          export LIBS="-llz4 -llzo2"
           ./configure --prefix=/usr/local
           make -j"$(nproc)"
           sudo make install
