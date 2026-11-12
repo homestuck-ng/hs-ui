@@ -170,6 +170,9 @@ python3 "$ROOT/scripts/enable_multiuser.py" "$TREE/system"
 python3 "$ROOT/scripts/patch_bluetooth_lib.py" "$TREE"
 python3 "$ROOT/scripts/apply_deknox.py" "$TREE"
 
+echo "=== userdata stays plain f2fs ==="
+python3 "$ROOT/scripts/strip_userdata_encryption.py" "$TREE/vendor"
+
 echo "=== erofs ==="
 # 0550 root:logd -> 0755 root:root. See mk_erofs comment.
 logd="$TREE/system/system/bin/logd"
