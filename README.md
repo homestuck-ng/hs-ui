@@ -34,7 +34,7 @@ Files are in `recovery/`.
 
 1. Enable OEM unlock. Power off. Hold both volume keys, connect the cable, then press volume up to enter Download mode.
 2. Odin: Auto Reboot off, Re-Partition off.
-3. AP: the OrangeFox tar. USERDATA: `patched-vb.tar`.
+3. AP: the OrangeFox tar. CP: `patched-vb.tar`.
 4. Start. Wait for PASS.
 5. Do not boot the system. Hold volume down and power until the screen goes off, then immediately hold volume up and power to open OrangeFox. A normal boot restores the stock recovery.
 
