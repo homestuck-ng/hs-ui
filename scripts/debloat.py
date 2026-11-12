@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Delete junk app directories. KEEP always wins."""
 import os
+import shutil
 import subprocess
 import sys
 
@@ -37,6 +38,7 @@ def main():
     keep = load(keep_path)
     removed = []
     seen = set()
+    pending = []
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in {".git"}]
         for name in filenames:
@@ -49,14 +51,15 @@ def main():
             seen.add(pkg)
             if pkg in keep or pkg not in remove:
                 continue
-            app_dir = dirpath
-            # priv-app/Name/Name.apk -> delete priv-app/Name
-            if os.path.basename(os.path.dirname(app_dir)) in {"app", "priv-app", "overlay"}:
-                app_dir = dirpath
-            print("DEL", pkg, app_dir, flush=True)
-            removed.append(pkg + " " + os.path.relpath(app_dir, root))
-            # walk will still visit deleted dirs; ignore the error
-            subprocess.check_call(["rm", "-rf", app_dir])
+            pending.append((pkg, dirpath))
+    deleted = set()
+    for pkg, app_dir in pending:
+        if app_dir in deleted or not os.path.isdir(app_dir):
+            continue
+        print("DEL", pkg, app_dir, flush=True)
+        removed.append(pkg + " " + os.path.relpath(app_dir, root))
+        shutil.rmtree(app_dir)
+        deleted.add(app_dir)
     with open(log_path, "w", encoding="utf-8") as f:
         f.write("\n".join(removed) + ("\n" if removed else ""))
     for pkg in ("com.sec.unifiedwfc", "com.sec.epdg"):

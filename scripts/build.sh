@@ -118,21 +118,20 @@ echo "=== extract filesystems ==="
 mkdir -p "$WORK/meta"
 extract_fs "$SYS/parts/system.img" "$TREE/system" "$WORK/meta/system.jsonl"
 extract_fs "$SYS/parts/vendor.img" "$TREE/vendor" "$WORK/meta/vendor.jsonl"
+extract_fs "$SYS/parts/product.img" "$TREE/product" "$WORK/meta/product.jsonl"
+extract_fs "$SYS/parts/system_ext.img" "$TREE/system_ext" "$WORK/meta/system_ext.jsonl"
 extract_fs "$BOOT/parts/vendor_dlkm.img" "$TREE/vendor_dlkm"
-# product, system_ext and odm are not patched. Keep the stock f2fs images.
+# odm has no debloat targets. Keep the stock image.
 SYSTEM_BYTES=$(stat -c %s "$SYS/parts/system.img")
 VENDOR_BYTES=$(stat -c %s "$SYS/parts/vendor.img")
-unsparse "$SYS/parts/product.img"
-unsparse "$SYS/parts/system_ext.img"
+PRODUCT_BYTES=$(stat -c %s "$SYS/parts/product.img")
+SYSTEM_EXT_BYTES=$(stat -c %s "$SYS/parts/system_ext.img")
 unsparse "$SYS/parts/odm.img"
-cp -a "$SYS/parts/product.img" "$WORK/product.img"
-cp -a "$SYS/parts/system_ext.img" "$WORK/system_ext.img"
 cp -a "$SYS/parts/odm.img" "$WORK/odm.img"
 rm -rf "$SYS/parts" "$BOOT/parts"
 echo "stock bytes system=$SYSTEM_BYTES vendor=$VENDOR_BYTES"
 
 echo "=== vintf ==="
-echo "debloat not applied; deknox and vendor fixes are in the f2fs images" > "$STAGE/debloat.txt"
 MAN="$TREE/vendor/etc/vintf/manifest"
 rm -f \
     "$MAN/vendor.samsung.hardware.sehradio_manifest_2_31.xml" \
@@ -248,16 +247,50 @@ PY
 echo "=== framework patches ==="
 python3 "$ROOT/scripts/enable_multiuser.py" "$TREE/system"
 python3 "$ROOT/scripts/patch_bluetooth_lib.py" "$TREE"
+python3 "$ROOT/scripts/debloat.py" "$TREE" \
+    "$ROOT/target/r0q/remove.list" "$ROOT/target/r0q/keep.list" "$STAGE/debloat.txt"
 python3 "$ROOT/scripts/apply_deknox.py" "$TREE"
+cp -a "$ROOT/target/r0q/remove.list" "$STAGE/remove.list"
+python3 - "$ROOT/target/r0q/remove.list" "$STAGE/debloat_data.sh" <<'PY'
+import sys
+src, dest = sys.argv[1], sys.argv[2]
+pkgs = []
+for line in open(src, encoding="utf-8"):
+    line = line.strip()
+    if line and not line.startswith("#"):
+        pkgs.append(line)
+body = """#!/system/bin/sh
+if [ ! -d /data/app ]; then
+  echo "data not mounted, skip"
+  exit 0
+fi
+"""
+for pkg in pkgs:
+    body += f"""
+pkg={pkg}
+find /data/app -mindepth 2 -maxdepth 2 -type d 2>/dev/null | while read -r dir; do
+  base=${{dir##*/}}
+  case "$base" in
+    "$pkg"|"$pkg"-*) rm -rf "$dir"; echo "data $pkg" ;;
+  esac
+done
+rm -rf "/data/data/$pkg" "/data/user/0/$pkg" "/data/user_de/0/$pkg"
+"""
+open(dest, "w", newline="\n").write(body)
+print("debloat_data", len(pkgs))
+PY
+chmod 755 "$STAGE/debloat_data.sh"
 
 echo "=== userdata stays plain f2fs ==="
 python3 "$ROOT/scripts/strip_userdata_encryption.py" "$TREE/vendor"
 
 echo "=== images ==="
-pad4k "$WORK/product.img"
-pad4k "$WORK/system_ext.img"
 mk_f2fs system "$TREE/system" "$WORK/meta/system.jsonl" "$WORK/system.img" "$SYSTEM_BYTES"
 sudo rm -rf "$TREE/system"
+mk_f2fs product "$TREE/product" "$WORK/meta/product.jsonl" "$WORK/product.img" "$PRODUCT_BYTES"
+sudo rm -rf "$TREE/product"
+mk_f2fs system_ext "$TREE/system_ext" "$WORK/meta/system_ext.jsonl" "$WORK/system_ext.img" "$SYSTEM_EXT_BYTES"
+sudo rm -rf "$TREE/system_ext"
 mk_f2fs vendor "$TREE/vendor" "$WORK/meta/vendor.jsonl" "$WORK/vendor.img" "$VENDOR_BYTES"
 sudo rm -rf "$TREE/vendor"
 
@@ -330,6 +363,7 @@ rm -f "$ZIP"
     cd "$STAGE"
     zip -r0 "$ZIP" \
         META-INF dynamic_partitions_op_list unsparse_super_empty.img debloat.txt \
+        debloat_data.sh remove.list \
         ./*.new.dat.br ./*.transfer.list ./*.patch.dat \
         boot.img dtbo.img vendor_boot.img vbmeta.img vbmeta_system.img
 )
