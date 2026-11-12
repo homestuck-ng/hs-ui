@@ -155,8 +155,11 @@ PY
 mk_erofs() {
     local mount="$1" contexts="$2" image="$3" tree="$4"
     rm -f "$image"
+    # dump.erofs/fsck.erofs --extract on GHA runs as uid 1001 (runner=radio).
+    # Baking that into erofs makes mode-750 bins (logd etc.) unexecutable by their
+    # service uids → init: cannot execv(...): Permission denied and a stuck boot.
     mkfs.erofs -zlz4hc,9 -b 4096 --mount-point="$mount" \
-        --file-contexts="$contexts" -T 1640995200 \
+        --file-contexts="$contexts" --all-root -T 1640995200 \
         "$image" "$tree"
     pad4k "$image"
 }
