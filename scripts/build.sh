@@ -189,7 +189,7 @@ PY
         echo "sload $name $this"
         rm -f "$img"
         truncate -s "$this" "$img"
-        /usr/sbin/mkfs.f2fs -q -f -l "$name" -o 8 "$img"
+        /usr/sbin/mkfs.f2fs -q -f -l "$name" -o 1 "$img"
         set +e
         sudo /usr/sbin/sload.f2fs -f "$src" -t / -P "$img" >"$logfile" 2>&1
         local rc=$?
@@ -207,7 +207,7 @@ PY
     local max_mb target current
     max_mb="$(sed -n 's/.*Max image size: \([0-9][0-9]*\) MB.*/\1/p' "$logfile" | tail -n 1)"
     if [[ -n "$max_mb" ]]; then
-        target="$(python3 -c "mb=int('$max_mb'); seg=2*1024*1024; size=mb*1024*1024+96*1024*1024; print(((size+seg-1)//seg)*seg)")"
+        target="$(python3 -c "mb=int('$max_mb'); seg=2*1024*1024; size=int(mb*1024*1024/0.99)+128*1024*1024; print(((size+seg-1)//seg)*seg)")"
         current="$(stat -c %s "$image")"
         if [[ "$target" -lt "$current" ]]; then
             echo "shrink $label $current -> $target from ${max_mb} MB"
