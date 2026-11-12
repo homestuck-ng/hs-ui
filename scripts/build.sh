@@ -163,7 +163,12 @@ align_seg() {
 # the file was sized from the uncompressed tree.
 mk_f2fs() {
     local label="$1" tree="$2" meta="$3" image="$4" base="$5"
-    command -v sload.f2fs >/dev/null || { echo "sload.f2fs missing" >&2; exit 1; }
+    if [[ -x /usr/local/sbin/sload.f2fs ]]; then
+        sload_bin=/usr/local/sbin/sload.f2fs
+    else
+        sload_bin="$(command -v sload.f2fs)"
+    fi
+    [[ -n "$sload_bin" ]] || { echo "sload.f2fs missing" >&2; exit 1; }
     sudo python3 "$ROOT/scripts/apply_fs_meta.py" "$tree" "$meta" owners
     local bytes extra
     bytes="$(align_seg "$((base + 64 * 1024 * 1024))")"
@@ -174,7 +179,7 @@ mk_f2fs() {
         truncate -s "$bytes" "$image"
         mkfs.f2fs -q -f -O extra_attr,compression -l "$label" -o 8 "$image"
         set +e
-        sload_log="$(sudo sload.f2fs -f "$tree" -t / -P -c -a lz4 -r "$image" 2>&1)"
+        sload_log="$(sudo "$sload_bin" -f "$tree" -t / -P -c -a lz4 -r "$image" 2>&1)"
         sload_rc=$?
         set -e
         printf '%s\n' "$sload_log"

@@ -37,10 +37,16 @@ jobs:
           # glibc no longer exposes major/minor from sys/types.h.
           export CFLAGS="-O2 -include sys/sysmacros.h"
           ./configure --prefix=/usr/local
-          grep -q 'HAVE_LIBLZ4 1' config.h
           make -j"$(nproc)"
           sudo make install
           sudo ldconfig
+          mkfs=/usr/local/sbin/mkfs.f2fs
+          sload=/usr/local/sbin/sload.f2fs
+          mkdir -p /tmp/sload-src
+          echo hi > /tmp/sload-src/a
+          truncate -s 64M /tmp/sload.img
+          "$mkfs" -f -O extra_attr,compression /tmp/sload.img
+          "$sload" -f /tmp/sload-src -t / -c -a lz4 -r /tmp/sload.img
 
       - name: Install samloader
         run: |
