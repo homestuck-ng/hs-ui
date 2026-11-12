@@ -14,7 +14,7 @@ Actions → Build → Run workflow. Скачанный с Actions файл — z
 
 Один zip. Поверх уже стоящей системы его можно шить без набора отдельных патчей.
 
-Порядок как в UN1CA. Сначала с раздела снимаются uid, gid, mode и SELinux-метки. Потом на дерево накладываются deknox, multi-user, Bluetooth, вырезание дублей VINTF и снятие шифрования `/data`. Потом system и vendor заново собираются в f2fs, и метки возвращаются на место. product, system_ext и odm не патчатся, поэтому остаются стоковым f2fs. `vendor_dlkm` из 6.1 получает vermagic ядра CEYB1. `vendor_boot` остаётся на f2fs: отдельный патч типа раздела больше не нужен. У vbmeta флаги `00 00 00 03`.
+Порядок как в UN1CA. Сначала с раздела снимаются uid, gid, mode и SELinux-метки. Потом на дерево накладываются deknox, multi-user, Bluetooth, вырезание дублей VINTF и снятие шифрования `/data`. Потом `sload.f2fs` пишет system и vendor сразу в образ, без монтирования и копирования, и метки возвращаются на место. product, system_ext и odm не патчатся, поэтому остаются стоковым f2fs. `vendor_dlkm` из 6.1 получает vermagic ядра CEYB1. `vendor_boot` остаётся на f2fs: отдельный патч типа раздела больше не нужен. У vbmeta флаги `00 00 00 03`.
 
 `/data` не шифруется: из `/vendor/etc/fstab.qcom` и из копии в `vendor_boot` убраны `fileencryption`, `metadata_encryption` и `keydirectory`. Один `keydirectory` уже включает шифрование метаданных. Format Data для этого не нужен. Если раньше init уже создал ключ в `/metadata/vold/metadata_encryption`, сотри этот каталог перед первой загрузкой этого zip, иначе старый ключ не совпадёт с разделом.
 

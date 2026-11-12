@@ -7,7 +7,8 @@ import sys
 
 
 def main():
-    root, meta = sys.argv[1:]
+    root, meta = sys.argv[1], sys.argv[2]
+    kind = sys.argv[3] if len(sys.argv) > 3 else "all"
     n = 0
     missing = 0
     with open(meta, encoding="utf-8") as fh:
@@ -18,15 +19,17 @@ def main():
             if not os.path.lexists(path):
                 missing += 1
                 continue
-            os.lchown(path, item["u"], item["g"])
-            if not stat.S_ISLNK(os.lstat(path).st_mode):
-                os.chmod(path, item["m"])
-            sel = item["s"].encode("utf-8", "surrogateescape")
-            if sel:
-                os.setxattr(path, "security.selinux", sel, follow_symlinks=False)
-            cap = bytes(item["c"])
-            if cap:
-                os.setxattr(path, "security.capability", cap, follow_symlinks=False)
+            if kind != "labels":
+                os.lchown(path, item["u"], item["g"])
+                if not stat.S_ISLNK(os.lstat(path).st_mode):
+                    os.chmod(path, item["m"])
+            if kind != "owners":
+                sel = item["s"].encode("utf-8", "surrogateescape")
+                if sel:
+                    os.setxattr(path, "security.selinux", sel, follow_symlinks=False)
+                cap = bytes(item["c"])
+                if cap:
+                    os.setxattr(path, "security.capability", cap, follow_symlinks=False)
             n += 1
     print("restored", n, "skipped", missing)
     logd = os.path.join(root, "system", "bin", "logd")

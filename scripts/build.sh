@@ -116,17 +116,19 @@ rm -f "$SYS/super.img" "$BOOT/super.img"
 echo "=== extract filesystems ==="
 mkdir -p "$WORK/meta"
 extract_fs "$SYS/parts/system.img" "$TREE/system" "$WORK/meta/system.jsonl"
-extract_fs "$SYS/parts/product.img" "$TREE/product"
-extract_fs "$SYS/parts/system_ext.img" "$TREE/system_ext"
 extract_fs "$SYS/parts/vendor.img" "$TREE/vendor" "$WORK/meta/vendor.jsonl"
 extract_fs "$BOOT/parts/vendor_dlkm.img" "$TREE/vendor_dlkm"
+# product, system_ext and odm are not patched. Keep the stock f2fs images.
+SYSTEM_BYTES=$(stat -c %s "$SYS/parts/system.img")
+VENDOR_BYTES=$(stat -c %s "$SYS/parts/vendor.img")
+unsparse "$SYS/parts/product.img"
+unsparse "$SYS/parts/system_ext.img"
 unsparse "$SYS/parts/odm.img"
-cp -a "$SYS/parts/odm.img" "$WORK/odm.img"
-# product and system_ext have no patches, so the stock f2fs images stay.
-# system and vendor are rebuilt after the patches, same as UN1CA.
 cp -a "$SYS/parts/product.img" "$WORK/product.img"
 cp -a "$SYS/parts/system_ext.img" "$WORK/system_ext.img"
+cp -a "$SYS/parts/odm.img" "$WORK/odm.img"
 rm -rf "$SYS/parts" "$BOOT/parts"
+echo "stock bytes system=$SYSTEM_BYTES vendor=$VENDOR_BYTES"
 
 echo "=== vintf ==="
 echo "debloat not applied; deknox and vendor fixes are in the f2fs images" > "$STAGE/debloat.txt"
@@ -151,37 +153,42 @@ print(path, os.path.getsize(path))
 PY
 }
 
+align_seg() {
+    python3 -c "n=int('$1'); seg=2*1024*1024; print(((n+seg-1)//seg)*seg)"
+}
+
+# sload.f2fs writes the image itself. Mounting a fresh mkfs and copying
+# into it returned EIO on the first directory when quota was enabled and
+# the file was sized from the uncompressed tree.
 mk_f2fs() {
-    local label="$1" tree="$2" meta="$3" image="$4"
-    local bytes
-    bytes="$(python3 - "$tree" <<'PY'
-import os, sys
-root = sys.argv[1]
-total = 0
-for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-    for name in dirnames + filenames:
-        try:
-            total += os.lstat(os.path.join(dirpath, name)).st_size
-        except OSError:
-            pass
-size = total + total // 5 + 64 * 1024 * 1024
-if size % 4096:
-    size += 4096 - (size % 4096)
-print(max(size, 18882560))
-PY
-)"
-    echo "mkfs.f2fs $label $bytes"
-    rm -f "$image"
-    truncate -s "$bytes" "$image"
-    if ! mkfs.f2fs -q -f -O extra_attr,quota -l "$label" -o 8 "$image"; then
+    local label="$1" tree="$2" meta="$3" image="$4" base="$5"
+    command -v sload.f2fs >/dev/null || { echo "sload.f2fs missing" >&2; exit 1; }
+    sudo python3 "$ROOT/scripts/apply_fs_meta.py" "$tree" "$meta" owners
+    local bytes extra
+    bytes="$(align_seg "$((base + 64 * 1024 * 1024))")"
+    for extra in 0 268435456; do
+        bytes="$(align_seg "$((base + 64 * 1024 * 1024 + extra))")"
+        echo "sload $label $bytes"
+        rm -f "$image"
         truncate -s "$bytes" "$image"
-        mkfs.f2fs -q -f -O extra_attr -l "$label" -o 8 "$image"
-    fi
+        mkfs.f2fs -q -f -O extra_attr,compression -l "$label" -o 8 "$image"
+        if sudo sload.f2fs -f "$tree" -t / -P -c -r "$image"; then
+            break
+        fi
+        echo "sload $label did not fit in $bytes" >&2
+        if [[ "$extra" != 0 ]]; then
+            sudo dmesg | tail -n 20 >&2 || true
+            exit 1
+        fi
+    done
     local mnt="$WORK/mnt"
     mkdir -p "$mnt"
     sudo umount "$mnt" 2>/dev/null || true
-    sudo mount -t f2fs -o loop "$image" "$mnt"
-    sudo cp -a "$tree"/. "$mnt"/
+    if ! sudo mount -t f2fs -o loop "$image" "$mnt"; then
+        echo "mount $label failed" >&2
+        sudo dmesg | tail -n 40 >&2 || true
+        exit 1
+    fi
     sudo python3 "$ROOT/scripts/apply_fs_meta.py" "$mnt" "$meta"
     sudo umount "$mnt"
     pad4k "$image"
@@ -198,9 +205,9 @@ python3 "$ROOT/scripts/strip_userdata_encryption.py" "$TREE/vendor"
 echo "=== images ==="
 pad4k "$WORK/product.img"
 pad4k "$WORK/system_ext.img"
-mk_f2fs system "$TREE/system" "$WORK/meta/system.jsonl" "$WORK/system.img"
-rm -rf "$TREE/system" "$TREE/product" "$TREE/system_ext"
-mk_f2fs vendor "$TREE/vendor" "$WORK/meta/vendor.jsonl" "$WORK/vendor.img"
+mk_f2fs system "$TREE/system" "$WORK/meta/system.jsonl" "$WORK/system.img" "$SYSTEM_BYTES"
+rm -rf "$TREE/system"
+mk_f2fs vendor "$TREE/vendor" "$WORK/meta/vendor.jsonl" "$WORK/vendor.img" "$VENDOR_BYTES"
 rm -rf "$TREE/vendor"
 
 echo "=== vendor_dlkm ==="
@@ -213,6 +220,7 @@ mkdir -p "$MNT"
 sudo umount "$MNT" 2>/dev/null || true
 sudo mount -t f2fs -o loop "$DLKM" "$MNT"
 sudo cp -a "$TREE/vendor_dlkm"/. "$MNT"/
+sudo chown -R 0:0 "$MNT"
 sudo python3 - "$MNT" <<'PY'
 import os, sys
 root = sys.argv[1]
