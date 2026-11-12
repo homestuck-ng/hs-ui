@@ -40,7 +40,7 @@ Files are in `recovery/`.
 
 ### 3. ROM
 
-Actions, workflow Build. Download `OneUI51_S901E_XXV_hybrid.zip` and flash that file. It already contains `META-INF`.
+The flashable file is [OneUI51_S901E_XXV_hybrid.zip](https://github.com/homestuck-ng/hs-ui/releases/tag/hs-ui-5.1). It contains `META-INF`. Flash that file in OrangeFox.
 
 Dirty flash is supported. Data is not formatted and is not encrypted. If `/metadata/vold/metadata_encryption` already exists, delete that directory before the first boot.
 

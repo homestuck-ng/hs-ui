@@ -3,6 +3,9 @@ name: Build
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -57,3 +60,23 @@ jobs:
           path: work/stage
           compression-level: 0
           retention-days: 14
+
+      - name: Publish the flashable zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=hs-ui-5.1
+          notes="Flash OneUI51_S901E_XXV_hybrid.zip in OrangeFox. The file contains META-INF. Do not flash BL or CP."
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" \
+              out/OneUI51_S901E_XXV_hybrid.zip \
+              out/OneUI51_S901E_XXV_hybrid.zip.sha256 \
+              --clobber
+          else
+            gh release create "$tag" \
+              out/OneUI51_S901E_XXV_hybrid.zip \
+              out/OneUI51_S901E_XXV_hybrid.zip.sha256 \
+              --title "HS-UI 5.1" \
+              --notes "$notes" \
+              --latest
+          fi
