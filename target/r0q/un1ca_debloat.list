@@ -99,6 +99,19 @@ system system/etc/permissions/privapp-permissions-com.samsung.petservice.xml
 system system/etc/permissions/privapp-permissions-com.samsung.videoscan.xml
 system system/priv-app/PetService
 system system/priv-app/VideoScan
+system system/priv-app/RubinVersion33
+system system/priv-app/SamsungSmartSuggestions
+system system/priv-app/StoryService
+system system/priv-app/MateAgent
+system system/app/BBCAgent
+system system/app/DAAgent
+system system/priv-app/DeviceQualityAgent3
+system system/priv-app/ImsLogger
+system system/app/HiyaService
+system system/priv-app/KnoxCore
+system system/priv-app/knoxanalyticsagent
+system system/priv-app/KPECore
+system system/app/MDMApp
 
 vendor etc/dpolicy
 vendor recovery-from-boot.p

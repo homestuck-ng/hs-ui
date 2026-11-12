@@ -2,15 +2,6 @@ name: Build
 
 on:
   workflow_dispatch:
-    inputs:
-      debloat:
-        description: "Debloat level. un1ca is the r0q UN1CA list. extended adds target/r0q/remove.list."
-        required: true
-        default: un1ca
-        type: choice
-        options:
-          - un1ca
-          - extended
 
 jobs:
   build:
@@ -54,14 +45,14 @@ jobs:
         env:
           SAMSUNG_IMEI: ${{ secrets.SAMSUNG_IMEI }}
           SAMSUNG_SERIAL: ${{ secrets.SAMSUNG_SERIAL }}
-          DEBLOAT: ${{ inputs.debloat }}
+          DEBLOAT: un1ca
         run: bash scripts/build.sh
 
       - name: Upload the zip
         uses: actions/upload-artifact@v4
         with:
           # Downloaded name becomes <name>.zip — extract it; flash the inner ROM zip.
-          name: OneUI51_S901E_XXV_hybrid_${{ inputs.debloat }}
+          name: OneUI51_S901E_XXV_hybrid
           path: |
             out/*.zip
             out/*.sha256

@@ -245,23 +245,12 @@ PY
 }
 
 echo "=== framework patches ==="
-case "${DEBLOAT:-un1ca}" in
-    un1ca|extended) ;;
-    *)
-        echo "DEBLOAT must be un1ca or extended" >&2
-        exit 1
-        ;;
-esac
-echo "debloat mode ${DEBLOAT:-un1ca}"
+echo "debloat mode un1ca"
 python3 "$ROOT/scripts/enable_multiuser.py" "$TREE/system"
 python3 "$ROOT/scripts/patch_bluetooth_lib.py" "$TREE"
 : > "$STAGE/debloat.txt"
 python3 "$ROOT/scripts/apply_un1ca_debloat.py" "$TREE" \
     "$ROOT/target/r0q/un1ca_debloat.list" "$STAGE/debloat.txt"
-if [[ "${DEBLOAT:-un1ca}" == "extended" ]]; then
-    python3 "$ROOT/scripts/debloat.py" "$TREE" \
-        "$ROOT/target/r0q/remove.list" "$ROOT/target/r0q/keep.list" "$STAGE/debloat.txt"
-fi
 python3 "$ROOT/scripts/apply_deknox.py" "$TREE"
 python3 - "$STAGE/debloat.txt" "$STAGE/debloat_data.sh" "$STAGE/remove.list" <<'PY'
 import sys
@@ -376,7 +365,7 @@ to_dat vendor_dlkm "$DLKM"
 cp -a "$ROOT/prebuilts/updater" "$STAGE/META-INF/com/google/android/update-binary"
 chmod 755 "$STAGE/META-INF/com/google/android/update-binary"
 
-ZIP="$OUT/OneUI51_S901E_XXV_hybrid_${DEBLOAT:-un1ca}.zip"
+ZIP="$OUT/OneUI51_S901E_XXV_hybrid.zip"
 rm -f "$ZIP"
 (
     cd "$STAGE"
