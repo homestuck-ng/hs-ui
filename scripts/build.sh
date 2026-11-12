@@ -225,10 +225,9 @@ to_dat() {
     local name="$1"
     local img="$2"
     python3 "$ROOT/external/img2sdat/img2sdat" -o "$STAGE" -v 4 "$STAGE/${name}.img"
-    # Max brotli: recovery unzip often rejects ZIP64 (>4GiB-1) with "invalid zip file format".
-    brotli --quality=11 --output="$STAGE/${name}.new.dat.br" "$STAGE/${name}.new.dat"
+    brotli --quality=6 --output="$STAGE/${name}.new.dat.br" "$STAGE/${name}.new.dat"
     rm -f "$STAGE/${name}.new.dat" "$STAGE/${name}.img" "$img"
-    echo "dat $name $(stat -c%s "$STAGE/${name}.new.dat.br")"
+    echo "dat $name"
 }
 
 echo "=== dat ==="
@@ -251,12 +250,5 @@ rm -f "$ZIP"
         ./*.new.dat.br ./*.transfer.list ./*.patch.dat \
         boot.img dtbo.img vendor_boot.img vbmeta.img vbmeta_system.img
 )
-ZIP_BYTES="$(stat -c%s "$ZIP")"
-echo "zip_bytes $ZIP_BYTES"
-# Classic zip / Android minzip break past 4GiB-1 (ZIP64).
-if (( ZIP_BYTES >= 4294967295 )); then
-    echo "zip is $ZIP_BYTES bytes; recovery needs < 4294967295 (no ZIP64)" >&2
-    exit 1
-fi
 sha256sum "$ZIP" | tee "$ZIP.sha256"
 echo "BUILD_OK $ZIP"

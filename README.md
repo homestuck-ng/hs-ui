@@ -10,7 +10,7 @@ FUS на запрос `CWI1` и `CEYB1` отдаёт более новые сб�
 
 ## Сборка
 
-Actions → Build → Run workflow. Артефакт называется `OneUI51_S901E_XXV_hybrid_debloat`: скачанный с Actions файл — это **обёртка**, её надо распаковать на ПК. Внутри будет `OneUI51_S901E_XXV_hybrid_debloat.zip` (с `META-INF/`) — **его** и кидай в recovery. Zip специально жмётся ниже 4GiB: иначе recovery пишет `invalid zip file format` из‑за ZIP64.
+Actions → Build → Run workflow. Скачанный с Actions файл — zip-обёртка. Распакуй её на ПК и в recovery кидай внутренний `OneUI51_S901E_XXV_hybrid_debloat.zip` (внутри есть `META-INF`). Саму обёртку recovery не примет: `invalid zip file format`.
 
 Образы собираются через `mkfs.erofs` с `plat_file_contexts`, как в UN1CA. Перед сборкой system включается multi-user, как в `unica/mods/multiuser`, и Bluetooth-библиотека патчится теми же arm64-последовательностями, что у BluetoothLibraryPatcher. В `vendor_boot` первый fstab для system, system_ext, product и vendor стоит как erofs. У vbmeta флаги `00 00 00 03`.
 
