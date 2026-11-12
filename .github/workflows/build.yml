@@ -50,6 +50,7 @@ jobs:
       - name: Upload the zip
         uses: actions/upload-artifact@v4
         with:
+          # Downloaded name becomes <name>.zip — extract it; flash the inner ROM zip.
           name: OneUI51_S901E_XXV_hybrid_debloat
           path: |
             out/*.zip
