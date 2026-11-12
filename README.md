@@ -1,23 +1,69 @@
-# One UI 5.1 hybrid for SM-S901E (r0q, XXV)
+# HS-UI 5.1
 
-Прошивка для уже прошитого загрузчика binary C (`S901EXXSCEYB1`). BL и CP не шьются и не скачиваются.
+![HS-UI 5.1](docs/hs-ui-5.1.jpg)
 
-Система, vendor, product, system_ext и odm берутся из One UI 5.1 `S901EXXS7CWI1`. boot, dtbo, vendor_boot и модули `vendor_dlkm` берутся из One UI 6.1 `S901EXXSCEYB1`. Свежий XXV `S901EXXSEGZH4` (binary G) этот Action не качает.
+Один универсальный архив One UI 5.1 для SM-S901E (r0q, XXV) с уже прошитым загрузчиком binary C (`S901EXXSCEYB1`). BL и CP не шьются и не скачиваются.
 
-## Загрузка прошивок
+Система, vendor, product, system_ext и odm берутся из One UI 5.1 `S901EXXS7CWI1`. boot, dtbo, vendor_boot и модули `vendor_dlkm` берутся из One UI 6.1 `S901EXXSCEYB1`. Свежий XXV `S901EXXSEGZH4` (binary G) эта сборка не качает.
 
-FUS на запрос `CWI1` и `CEYB1` отдаёт более новые сборки того же бита (`U7DWK4` и `UCFYDA`). Actions поэтому берёт эти два AP из релиза [firmware-v1](https://github.com/homestuck-ng/hs-ui/releases/tag/firmware-v1). BL и CP в релиз не входят. Если релиза нет, скрипт спрашивает FUS и останавливается, когда PDA не совпал.
+## Что прошивать
+
+Actions, workflow Build. Скачанный файл является zip-обёрткой. Распакуй её на компьютере и в рекавери прошивай внутренний `OneUI51_S901E_XXV_hybrid.zip`. Внутри него есть `META-INF`. Саму обёртку рекавери не примет.
+
+Архив шьётся поверх текущей системы. Данные не форматируются. BL и CP не прошивай.
+
+`/data` в этом архиве не шифруется. Из `/vendor/etc/fstab.qcom` и из копии в `vendor_boot` убран `keydirectory`. Format Data не нужен. Если раньше система уже создала ключ в `/metadata/vold/metadata_encryption`, удали этот каталог до первой загрузки, иначе старый ключ не совпадёт с разделом.
+
+## Что остаётся
+
+Звонки, SMS, камера, галерея, клавиатура Samsung, DeX, Мои файлы, Routines, Reminder, местоположение, экстренные вызовы, Find My Mobile, Samsung Account, Play Маркет, службы Google и Wi-Fi Calling.
+
+Bluetooth-патч для One UI 5.1 лежит отдельным файлом `system/lib64/libbluetooth_jni.so`. Подписанный `com.android.btservices.apex` не переписывается.
+
+## Что вырезано в универсальном архиве
+
+Список UN1CA для r0q, плюс Knox и телеметрия.
+
+- Chrome, Gmail, Карты, YouTube, Google Messages, Duo, OneDrive, Facebook-службы, Game Launcher
+- Samsung Pass, каркас оплаты, Auth Framework, Digital Key, Car Key
+- заводские тесты, SIM-unlock, Defex, скрипт восстановления рекавери
+- dexpreopt: каталоги `oat`, `vdex`, профили boot image
+- Rubin, Smart Suggestions, Story Service, Mate Agent, BBC Agent, DA Agent, Device Quality Agent, IMS Logger, Hiya
+- Knox Guard, KnoxCore, Knox Analytics, KPE, MDM и связанные Knox-приложения
+- автоустановка партнёрских приложений из Play (`PlayAutoInstallConfig`)
+
+eSIM и `fabric_crypto` остаются: в UN1CA для r0q они тоже остаются. OMC и SDM не удаляются, от них зависят регион и настройки оператора.
+
+## Дополнительный деблоат
+
+`recovery/extra_samsung_S901E.zip` не входит в универсальный архив. Его прошивают отдельно те, кому не нужны личные приложения Samsung.
+
+В OrangeFox смонтируй System и прошей этот zip. В логе будет строка `extra samsung` и число удалённых папок. Уже отсутствующие папки пропускаются, поэтому его можно ставить и до универсального архива, и после.
+
+Удаляет:
+
+- Bixby, Bixby Wakeup, Bixby Vision, настройки Bixby, Vision Intelligence, голосовой ввод, Finder
+- Game Tools, Game Optimizing Service
+- AR Zone, AR Emoji, редактор, AR Drawing, стикеры, аватар-стикеры, Dress Room
+- Samsung Free, Galaxy Store, темы, Samsung Billing
+- Kids Home, заглушку Galaxy Wearable, словарь, GpuWatch
+- Smart Switch и его агенты
+- SwiftKey (раздел `prism`, если он смонтирован)
+- Samsung Cloud, Digital Wellbeing, Link to Windows, Your Phone
+- обновлённые копии этих пакетов в `/data/app`
+
+Не трогает звонилку, сообщения Samsung, камеру, Samsung Account, Wi-Fi Calling, OMC и SDM.
+
+## Шифрование
+
+`recovery/encryption_S901E.zip` включает шифрование `/data`. Он возвращает в `/vendor/etc/fstab.qcom` стоковую опцию `keydirectory=/metadata/vold/metadata_encryption`.
+
+В OrangeFox смонтируй Vendor и прошей его. В логе должно быть `encryption on`.
+
+Универсальный архив после этого снова снимет шифрование, если прошить его позже. На телефон с уже заполненным открытым `/data` этот zip не ставь: следующая загрузка начнёт шифрование, данные пропадут из рекавери, а старый ключ в `/metadata/vold/metadata_encryption` может увести телефон обратно в рекавери.
 
 ## Сборка
 
-Actions → Build → Run workflow. Скачанный с Actions файл — zip-обёртка. Распакуй её на ПК и в recovery кидай внутренний `OneUI51_S901E_XXV_hybrid_debloat.zip` (внутри есть `META-INF`). Саму обёртку recovery не примет: `invalid zip file format`.
+Один workflow, без выбора режима. Actions, Build, Run workflow.
 
-Один zip. Поверх уже стоящей системы его можно шить без набора отдельных патчей.
-
-Порядок как в UN1CA. Сначала с раздела снимаются uid, gid, mode и SELinux-метки. Потом на дерево накладываются deknox, multi-user, Bluetooth, вырезание дублей VINTF и снятие шифрования `/data`. Потом `sload.f2fs` пишет system и vendor сразу в образ, без монтирования и копирования, и метки возвращаются на место. product, system_ext и odm не патчатся, поэтому остаются стоковым f2fs. `vendor_dlkm` из 6.1 получает vermagic ядра CEYB1. `vendor_boot` остаётся на f2fs: отдельный патч типа раздела больше не нужен. У vbmeta флаги `00 00 00 03`.
-
-`/data` не шифруется: из `/vendor/etc/fstab.qcom` и из копии в `vendor_boot` убраны `fileencryption`, `metadata_encryption` и `keydirectory`. Один `keydirectory` уже включает шифрование метаданных. Format Data для этого не нужен. Если раньше init уже создал ключ в `/metadata/vold/metadata_encryption`, сотри этот каталог перед первой загрузкой этого zip, иначе старый ключ не совпадёт с разделом.
-
-Wi-Fi Calling, Knox Guard, местоположение, экстренные вызовы, DeX и Pass остаются.
-
-В рекавери не прошивай BL и CP. Скачанный с Actions файл — zip-обёртка. Внутрь recovery клади архив, в котором есть `META-INF`.
+FUS на запрос `CWI1` и `CEYB1` отдаёт более новые сборки того же бита. Actions берёт эти два AP из релиза [firmware-v1](https://github.com/homestuck-ng/hs-ui/releases/tag/firmware-v1). BL и CP в релиз не входят. Если релиза нет, скрипт спрашивает FUS и останавливается, когда PDA не совпал.
