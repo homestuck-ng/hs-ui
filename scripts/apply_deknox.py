@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Apply UN1CA-style deknox to the One UI 5.1 system/vendor trees.
 
-Sixteen's giant smali patches target One UI 8. This port keeps their
-delete list, props, KnoxGuard disable, and the feature-flag flips that
-exist on One UI 5.1. Donor binary swaps and vold token patches are
-skipped: this hybrid already has unsupported FBE.
+Sixteen's giant smali patches target One UI 8. This port keeps the
+KnoxGuard disable, props, and feature-flag flips that exist on One UI
+5.1. The A73 donor libepm is not in this firmware set, so stock libepm
+stays and the libraries it links stay with it.
 """
 from __future__ import annotations
 
@@ -22,6 +22,12 @@ if _SCRIPTS not in sys.path:
 from smali_tools import assemble, disassemble, tool_paths
 
 # Relative to system/system or system/ (system-as-root layouts both work).
+# Stock libepm.so is BIND_NOW and NEEDED by /system/bin/vold. It links
+# libsdp_sdk.so and libdualdar.so; libsdp_sdk.so links libsdp_crypto.so.
+# libdualdar.so also links libkeyutils.so and libpersona.so, and libepm
+# links libknox_filemanager.so. Deleting any of those makes the linker
+# fail before main and init reboots with reboot,vold-failed.
+# Daemons (dualdard, sdp_cryptod) stay deleted.
 DELETE_REL = [
     "app/BlockchainBasicKit",
     "bin/dualdard",
@@ -44,15 +50,9 @@ DELETE_REL = [
     "lib/android.hardware.weaver@1.0.so",
     "lib/hidl_comm_ddar_client.so",
     "lib/hidl_tlc_blockchain_comm_client.so",
-    "lib/libdualdar.so",
     "lib/libhermes_cred.so",
-    "lib/libkeyutils.so",
-    "lib/libknox_filemanager.so",
     "lib/libmdfpp_req.so",
-    "lib/libpersona.so",
-    "lib/libsdp_crypto.so",
     "lib/libsdp_kekm.so",
-    "lib/libsdp_sdk.so",
     "lib/libtlc_blockchain_comm.so",
     "lib/libtlc_blockchain_direct_comm.so",
     "lib/libtlc_blockchain_keystore.so",
@@ -61,11 +61,8 @@ DELETE_REL = [
     "lib64/android.hardware.weaver@1.0.so",
     "lib64/hidl_comm_ddar_client.so",
     "lib64/hidl_tlc_blockchain_comm_client.so",
-    "lib64/libdualdar.so",
     "lib64/libmdfpp_req.so",
-    "lib64/libsdp_crypto.so",
     "lib64/libsdp_kekm.so",
-    "lib64/libsdp_sdk.so",
     "lib64/libtlc_blockchain_comm.so",
     "lib64/libtlc_blockchain_direct_comm.so",
     "lib64/libtlc_blockchain_keystore.so",

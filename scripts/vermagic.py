@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Strip -gki- from the 6.1 module vermagic so it matches the CEYB1 kernel."""
+"""Drop -gki- inside the 6.1 module vermagic without cutting the C string.
+
+The CEYB1 kernel expects
+5.10.209-android12-9-29539912-abS901EXXSCEYB1 SMP preempt mod_unload modversions aarch64.
+Padding the removed bytes with NULs in the middle terminates that string early
+and insmod returns Exec format error.
+"""
 import os
 import sys
 
@@ -16,8 +22,11 @@ def patch(path):
     if end < 0 or data.find(OLD, mark, end) < 0:
         return False
     start = data.find(OLD, mark, end)
-    repl = NEW + b"\x00" * (len(OLD) - len(NEW))
-    data[start:start + len(OLD)] = repl
+    pad = len(OLD) - len(NEW)
+    tail = bytes(data[start + len(OLD):end])
+    data[start:start + len(NEW)] = NEW
+    data[start + len(NEW):end - pad] = tail
+    data[end - pad:end] = b"\x00" * pad
     open(path, "wb").write(data)
     return True
 
@@ -42,6 +51,9 @@ def main():
     print(text)
     if b"-gki-" in text:
         raise SystemExit("vermagic still has -gki-")
+    magic = text.split(b"\x00", 1)[0]
+    if b"29539912-abS901EXXSCEYB1" not in magic:
+        raise SystemExit(f"vermagic was cut: {magic}")
     print("patched", n)
 
 
