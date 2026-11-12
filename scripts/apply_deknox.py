@@ -28,9 +28,14 @@ from smali_tools import assemble, disassemble, tool_paths
 # links libknox_filemanager.so. Deleting any of those makes the linker
 # fail before main and init reboots with reboot,vold-failed.
 # Daemons (dualdard, sdp_cryptod) stay deleted.
-# libandroid_servers.so still NEEDs libtlc_blockchain_keystore.so. Deleting
-# that library makes SystemServer throw UnsatisfiedLinkError, zygote restarts,
-# and bootchecker reboots to recovery. The blockchain keystore stack stays.
+# Stock libandroid_servers.so NEEDs libtlc_blockchain_keystore.so,
+# libhermes_cred.so, libsdp_kekm.so, hidl_comm_ddar_client.so and
+# libmdfpp_req.so. hidl_comm_ddar_client.so NEEDs
+# vendor.samsung.hardware.tlc.ddar@1.0.so. Deleting any of those makes
+# system_server throw UnsatisfiedLinkError and bootchecker reboot to
+# recovery. Those libraries stay. The donor libandroid_servers from a
+# newer device is not used: it also NEEDs graphics.common-V4, which this
+# One UI 5.1 tree does not have.
 DELETE_REL = [
     "app/BlockchainBasicKit",
     "bin/dualdard",
@@ -51,17 +56,7 @@ DELETE_REL = [
     "etc/sysconfig/preinstalled-packages-com.samsung.android.coldwalletservice.xml",
     "framework/service-samsung-blockchain.jar",
     "lib/android.hardware.weaver@1.0.so",
-    "lib/hidl_comm_ddar_client.so",
-    "lib/libhermes_cred.so",
-    "lib/libmdfpp_req.so",
-    "lib/libsdp_kekm.so",
-    "lib/vendor.samsung.hardware.tlc.ddar@1.0.so",
     "lib64/android.hardware.weaver@1.0.so",
-    "lib64/hidl_comm_ddar_client.so",
-    "lib64/libhermes_cred.so",
-    "lib64/libmdfpp_req.so",
-    "lib64/libsdp_kekm.so",
-    "lib64/vendor.samsung.hardware.tlc.ddar@1.0.so",
     "priv-app/HdmApk",
     "priv-app/KnoxAIFrameworkApp",
     "priv-app/KnoxFrameBufferProvider",

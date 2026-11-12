@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Patch Samsung's bluetooth library the way BluetoothLibraryPatcher does.
+"""Patch Samsung's bluetooth library the way the TWRP zip does.
 
-The byte sequences are the arm64 patterns from 3arthur6's module. One UI 5.1
-is API 33, so that pattern is tried first. The replacement is the same length.
+One UI 5.1 keeps libbluetooth_jni.so inside the signed
+com.android.btservices.apex. Rewriting that apex breaks the APK v3
+content digest and PackageManager kills system_server. The TWRP
+installer leaves the apex alone, extracts the library, and writes the
+patched copy to system/lib64.
 """
 import os
 import re
-import struct
+import shutil
+import subprocess
 import sys
+import tempfile
 import zipfile
-import zlib
 
 # (api, pre, post) for the default arm64 path, then the qcom API 28-30 path.
 PATTERNS = [
@@ -66,57 +70,71 @@ def patch_file(path):
     return True
 
 
-def patch_stored_zip(path):
-    with zipfile.ZipFile(path, "r") as archive:
-        names = [info.filename for info in archive.infolist() if info.filename.endswith("libbluetooth_jni.so") or info.filename.endswith("apex_payload.img")]
-    if not names:
+def label(path):
+    os.chown(path, 0, 0)
+    os.chmod(path, 0o644)
+    os.setxattr(path, "security.selinux", b"u:object_r:system_lib_file:s0\0")
+
+
+def read_payload_lib(payload):
+    mnt = tempfile.mkdtemp(prefix="btmnt-")
+    subprocess.check_call(["sudo", "mount", "-o", "loop,ro", payload, mnt])
+    try:
+        return subprocess.check_output(
+            ["sudo", "cat", os.path.join(mnt, "lib64", "libbluetooth_jni.so")]
+        )
+    finally:
+        subprocess.check_call(["sudo", "umount", mnt])
+        os.rmdir(mnt)
+
+
+def install_from_apex(apex_path):
+    """Write a patched system/lib64 copy. The apex file is not modified."""
+    system_dir = os.path.dirname(os.path.dirname(apex_path))
+    dest = os.path.join(system_dir, "lib64", "libbluetooth_jni.so")
+    tmp = tempfile.mkdtemp(prefix="btapex-")
+    payload = os.path.join(tmp, "apex_payload.img")
+    try:
+        with zipfile.ZipFile(apex_path) as archive:
+            with archive.open("apex_payload.img") as src, open(payload, "wb") as out:
+                shutil.copyfileobj(src, out)
+        data = read_payload_lib(payload)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    updated, status = patch_bytes(data)
+    if updated is None:
+        print(status, apex_path)
         return False
-    changed = False
-    raw = bytearray(open(path, "rb").read())
-    with zipfile.ZipFile(path, "r") as archive:
-        for info in archive.infolist():
-            if info.filename not in names or info.compress_type != zipfile.ZIP_STORED:
-                continue
-            data = archive.read(info.filename)
-            updated, status = patch_bytes(data)
-            print(status, path, info.filename)
-            if not status.startswith("patched"):
-                continue
-            start = info.header_offset + 30 + len(info.filename) + len(info.extra)
-            raw[start:start + len(updated)] = updated
-            crc = zlib.crc32(updated) & 0xFFFFFFFF
-            struct.pack_into("<I", raw, info.header_offset + 14, crc)
-            # Central directory CRC is updated by scanning the name.
-            marker = info.filename.encode()
-            cursor = 0
-            while True:
-                pos = raw.find(b"PK\x01\x02", cursor)
-                if pos < 0:
-                    break
-                name_len = struct.unpack_from("<H", raw, pos + 28)[0]
-                name = raw[pos + 46:pos + 46 + name_len]
-                if name == marker:
-                    struct.pack_into("<I", raw, pos + 16, crc)
-                    break
-                cursor = pos + 4
-            changed = True
-    if changed:
-        open(path, "wb").write(raw)
-    return changed
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    with open(dest, "wb") as out:
+        out.write(updated)
+    subprocess.check_call(["sudo", sys.executable, __file__, "--label", dest])
+    print(status, dest, "apex left signed", apex_path)
+    return True
 
 
 def main():
     root = sys.argv[1]
     hits = 0
+    written = set()
     for dirpath, _, files in os.walk(root):
         for name in files:
-            path = os.path.join(dirpath, name)
-            if name in {"libbluetooth.so", "libbluetooth_jni.so", "bluetooth.default.so"}:
-                if patch_file(path):
+            if name == "com.android.btservices.apex":
+                dest = install_from_apex(os.path.join(dirpath, name))
+                if dest:
                     hits += 1
-            elif name.startswith("com.android.bt") and name.endswith(".apex"):
-                if patch_stored_zip(path):
-                    hits += 1
+                    written.add(os.path.realpath(os.path.join(
+                        os.path.dirname(dirpath), "lib64", "libbluetooth_jni.so"
+                    )))
+    for dirpath, _, files in os.walk(root):
+        for name in files:
+            if name not in {"libbluetooth.so", "libbluetooth_jni.so", "bluetooth.default.so"}:
+                continue
+            path = os.path.realpath(os.path.join(dirpath, name))
+            if path in written:
+                continue
+            if patch_file(path):
+                hits += 1
     if hits == 0:
         print("bluetooth library pattern was not found")
         return 1
@@ -125,4 +143,7 @@ def main():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[1] == "--label":
+        label(sys.argv[2])
+        raise SystemExit(0)
     sys.exit(main())

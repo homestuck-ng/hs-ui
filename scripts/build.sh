@@ -213,6 +213,20 @@ PY
         exit 1
     fi
     sudo python3 "$ROOT/scripts/apply_fs_meta.py" "$mnt" "$meta"
+    if [[ "$label" == "system" ]]; then
+        sudo python3 - "$mnt" <<'PY'
+import os, sys
+root = sys.argv[1]
+for rel in ("system/lib64/libbluetooth_jni.so", "lib64/libbluetooth_jni.so"):
+    path = os.path.join(root, rel)
+    if not os.path.isfile(path):
+        continue
+    os.chown(path, 0, 0)
+    os.chmod(path, 0o644)
+    os.setxattr(path, "security.selinux", b"u:object_r:system_lib_file:s0\0")
+    print("labeled", rel)
+PY
+    fi
     sudo umount "$mnt"
     # A second sload into a smaller image crashes. resize.f2fs keeps the
     # packed data and drops the unused tail so the super group still fits.
