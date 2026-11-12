@@ -155,9 +155,10 @@ PY
 mk_erofs() {
     local mount="$1" contexts="$2" image="$3" tree="$4"
     rm -f "$image"
-    # dump.erofs/fsck.erofs --extract on GHA runs as uid 1001 (runner=radio).
-    # Baking that into erofs makes mode-750 bins (logd etc.) unexecutable by their
-    # service uids → init: cannot execv(...): Permission denied and a stuck boot.
+    # --all-root drops the extracted uid/gid (GHA extracts as uid 1001) to 0:0.
+    # Stock logd is mode 0550 root:logd, so uid 1036 executes it via the group
+    # bit. After gid becomes 0 that bit no longer applies and init cannot
+    # execv logd (status 127, boot stuck). Mode is fixed on the tree below.
     mkfs.erofs -zlz4hc,9 -b 4096 --mount-point="$mount" \
         --file-contexts="$contexts" --all-root -T 1640995200 \
         "$image" "$tree"
@@ -170,6 +171,15 @@ python3 "$ROOT/scripts/patch_bluetooth_lib.py" "$TREE"
 python3 "$ROOT/scripts/apply_deknox.py" "$TREE"
 
 echo "=== erofs ==="
+# 0550 root:logd -> 0755 root:root. See mk_erofs comment.
+logd="$TREE/system/system/bin/logd"
+if [ -f "$logd" ]; then
+    chmod 0755 "$logd"
+    echo "logd mode $(stat -c %a "$logd")"
+else
+    echo "logd missing: $logd" >&2
+    exit 1
+fi
 mk_erofs / "$PLAT" "$WORK/system.erofs" "$TREE/system"
 rm -rf "$TREE/system"
 mk_erofs /product "$PLAT" "$WORK/product.erofs" "$TREE/product"
