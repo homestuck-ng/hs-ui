@@ -2,96 +2,67 @@
 
 ![HS-UI 5.1](docs/hs-ui-5.1.jpg)
 
-Один универсальный архив One UI 5.1 для SM-S901E (r0q, XXV) с уже прошитым загрузчиком binary C (`S901EXXSCEYB1`). BL и CP не шьются и не скачиваются.
+One UI 5.1 for the Galaxy S22, SM-S901E (r0q, XXV), on a binary C bootloader.
 
-Система, vendor, product, system_ext и odm берутся из One UI 5.1 `S901EXXS7CWI1`. boot, dtbo, vendor_boot и модули `vendor_dlkm` берутся из One UI 6.1 `S901EXXSCEYB1`. Свежий XXV `S901EXXSEGZH4` (binary G) эта сборка не качает и в основу его ставить нельзя: бит загрузчика выше C.
+Debloat, Knox removal, and the r0q file lists come from [UN1CA](https://github.com/salvogiangreco/UN1CA). The Bluetooth patch comes from [BluetoothLibraryPatcher](https://github.com/3arthur6/BluetoothLibraryPatcher).
 
-## Основа
+| Part | Source |
+| --- | --- |
+| system, vendor, product, system_ext, odm | One UI 5.1 `S901EXXS7CWI1` |
+| boot, dtbo, vendor_boot, vendor_dlkm | One UI 6.1 `S901EXXSCEYB1` |
 
-Перед HS-UI телефон должен стоять на One UI 6.1 binary C, сборка `S901EXXSCEYB1`, регион XXV.
+Do not flash BL or CP from this ROM. Do not use a base newer than binary C. `S901EXXSEGZH4` is binary G.
 
-Страница прошивки на SamFW: [SM-S901E XXV S901EXXSCEYB1](https://samfw.com/firmware/SM-S901E/XXV/S901EXXSCEYB1).
+## Install
 
-В Odin кладутся четыре файла этой сборки: BL, AP, CP и HOME_CSC. HOME_CSC сохраняет данные. Обычный CSC стирает данные. Re-Partition выключен. Прошивки с битом выше C не подходят.
+### 1. Base
 
-Если в сведениях о ПО уже указан `S901EXXSCEYB1`, основу заново шить не нужно.
+The phone must already be on One UI 6.1 binary C, `S901EXXSCEYB1`, region XXV.
 
-## Рекавери
+[SM-S901E XXV S901EXXSCEYB1 on SamFW](https://samfw.com/firmware/SM-S901E/XXV/S901EXXSCEYB1)
 
-Файлы лежат в `recovery/`.
+Odin: BL, AP, CP, HOME_CSC. HOME_CSC keeps data. CSC erases it. Re-Partition off. Skip this step if Software information already shows `S901EXXSCEYB1`.
 
-- `OrangeFox-R12.0_A12-Unofficial-r0q.img.tar` ставится через Odin. Это tar из `OrangeFox-R12.0_A12-Unofficial-r0q.zip`. Сам zip больше 100 МБ, GitHub такой файл в репозиторий не принимает.
-- `patched-vb.tar` содержит `vbmeta.img` с флагами `00 00 00 03`.
+### 2. Recovery
 
-Порядок:
+Files are in `recovery/`.
 
-1. Включи OEM-разблокировку в параметрах разработчика и перезагрузись в Download Mode. На выключенном телефоне зажми обе кнопки громкости и подключи кабель, затем подтверди кнопкой громкости вверх.
-2. Открой Odin. Auto Reboot выключи. Re-Partition выключи.
-3. В AP положи `OrangeFox-R12.0_A12-Unofficial-r0q.img.tar`.
-4. В USERDATA положи `patched-vb.tar`.
-5. Нажми Start и дождись PASS.
-6. Не дай телефону загрузиться в систему. Зажми громкость вниз и питание, пока экран не погаснет, и сразу зажми громкость вверх и питание, чтобы открыть OrangeFox. Если загрузится обычная система, стоковый рекавери вернётся на место и шаг придётся повторить.
+| File | Role |
+| --- | --- |
+| `OrangeFox-R12.0_A12-Unofficial-r0q.img.tar` | OrangeFox for Odin. Taken from `OrangeFox-R12.0_A12-Unofficial-r0q.zip`. The full zip is over 100 MB, so GitHub will not store it. |
+| `patched-vb.tar` | `vbmeta.img`, flags `00 00 00 03` |
 
-Дальше в OrangeFox шьётся внутренний zip HS-UI. BL и CP этой прошивки не трогай.
+1. Enable OEM unlock. Power off. Hold both volume keys, connect the cable, then press volume up to enter Download mode.
+2. Odin: Auto Reboot off, Re-Partition off.
+3. AP: the OrangeFox tar. USERDATA: `patched-vb.tar`.
+4. Start. Wait for PASS.
+5. Do not boot the system. Hold volume down and power until the screen goes off, then immediately hold volume up and power to open OrangeFox. A normal boot restores the stock recovery.
 
-## Что прошивать
+### 3. ROM
 
-Actions, workflow Build. Скачанный файл является zip-обёрткой. Распакуй её на компьютере и в рекавери прошивай внутренний `OneUI51_S901E_XXV_hybrid.zip`. Внутри него есть `META-INF`. Саму обёртку рекавери не примет.
+Actions, workflow Build. The download is a zip wrapper. Flash the inner `OneUI51_S901E_XXV_hybrid.zip`. It contains `META-INF`. The wrapper will not flash.
 
-Архив шьётся поверх текущей системы. Данные не форматируются. BL и CP не прошивай.
+Dirty flash is supported. Data is not formatted and is not encrypted. If `/metadata/vold/metadata_encryption` already exists, delete that directory before the first boot.
 
-`/data` в этом архиве не шифруется. Из `/vendor/etc/fstab.qcom` и из копии в `vendor_boot` убран `keydirectory`. Format Data не нужен. Если раньше система уже создала ключ в `/metadata/vold/metadata_encryption`, удали этот каталог до первой загрузки, иначе старый ключ не совпадёт с разделом.
+## What stays
 
-## Что остаётся
+Calls, SMS, camera, gallery, Samsung keyboard, DeX, My Files, Routines, Reminder, location, emergency calls, Find My Mobile, Samsung Account, Play Store, Google services, and Wi-Fi Calling.
 
-Звонки, SMS, камера, галерея, клавиатура Samsung, DeX, Мои файлы, Routines, Reminder, местоположение, экстренные вызовы, Find My Mobile, Samsung Account, Play Маркет, службы Google и Wi-Fi Calling.
+## What is removed
 
-Bluetooth-патч для One UI 5.1 лежит отдельным файлом `system/lib64/libbluetooth_jni.so`. Подписанный `com.android.btservices.apex` не переписывается.
+The UN1CA r0q list, plus Knox and telemetry: Chrome, Gmail, Maps, YouTube, Google Messages, Duo, OneDrive, Facebook services, Game Launcher, Samsung Pass, payment and auth frameworks, factory tests, SIM unlock, Play Auto Install, Rubin, the agent stack, IMS Logger, Hiya, Knox Guard, KnoxCore, Knox Analytics, KPE, and MDM.
 
-## Что вырезано в универсальном архиве
+eSIM, `fabric_crypto`, OMC, and SDM stay.
 
-Список UN1CA для r0q, плюс Knox и телеметрия.
+## Optional zips
 
-- Chrome, Gmail, Карты, YouTube, Google Messages, Duo, OneDrive, Facebook-службы, Game Launcher
-- Samsung Pass, каркас оплаты, Auth Framework, Digital Key, Car Key
-- заводские тесты, SIM-unlock, Defex, скрипт восстановления рекавери
-- dexpreopt: каталоги `oat`, `vdex`, профили boot image
-- Rubin, Smart Suggestions, Story Service, Mate Agent, BBC Agent, DA Agent, Device Quality Agent, IMS Logger, Hiya
-- Knox Guard, KnoxCore, Knox Analytics, KPE, MDM и связанные Knox-приложения
-- автоустановка партнёрских приложений из Play (`PlayAutoInstallConfig`)
+Flash these in OrangeFox only if you want them. Mount the partition named below first.
 
-eSIM и `fabric_crypto` остаются: в UN1CA для r0q они тоже остаются. OMC и SDM не удаляются, от них зависят регион и настройки оператора.
+| Zip | Mount | Effect |
+| --- | --- | --- |
+| `recovery/extra_samsung_S901E.zip` | System | Removes Bixby, AR Emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey, Samsung Cloud, Digital Wellbeing, and Link to Windows. Leaves the dialer, Samsung messages, camera, Samsung Account, Wi-Fi Calling, OMC, and SDM. Log line: `extra samsung`. |
+| `recovery/encryption_S901E.zip` | Vendor | Puts `keydirectory` back and encrypts `/data`. Log line: `encryption on`. Do not flash this on a phone whose data is already in use. A later flash of the ROM removes encryption again. |
 
-## Дополнительный деблоат
+## Build
 
-`recovery/extra_samsung_S901E.zip` не входит в универсальный архив. Его прошивают отдельно те, кому не нужны личные приложения Samsung.
-
-В OrangeFox смонтируй System и прошей этот zip. В логе будет строка `extra samsung` и число удалённых папок. Уже отсутствующие папки пропускаются, поэтому его можно ставить и до универсального архива, и после.
-
-Удаляет:
-
-- Bixby, Bixby Wakeup, Bixby Vision, настройки Bixby, Vision Intelligence, голосовой ввод, Finder
-- Game Tools, Game Optimizing Service
-- AR Zone, AR Emoji, редактор, AR Drawing, стикеры, аватар-стикеры, Dress Room
-- Samsung Free, Galaxy Store, темы, Samsung Billing
-- Kids Home, заглушку Galaxy Wearable, словарь, GpuWatch
-- Smart Switch и его агенты
-- SwiftKey (раздел `prism`, если он смонтирован)
-- Samsung Cloud, Digital Wellbeing, Link to Windows, Your Phone
-- обновлённые копии этих пакетов в `/data/app`
-
-Не трогает звонилку, сообщения Samsung, камеру, Samsung Account, Wi-Fi Calling, OMC и SDM.
-
-## Шифрование
-
-`recovery/encryption_S901E.zip` включает шифрование `/data`. Он возвращает в `/vendor/etc/fstab.qcom` стоковую опцию `keydirectory=/metadata/vold/metadata_encryption`.
-
-В OrangeFox смонтируй Vendor и прошей его. В логе должно быть `encryption on`.
-
-Универсальный архив после этого снова снимет шифрование, если прошить его позже. На телефон с уже заполненным открытым `/data` этот zip не ставь: следующая загрузка начнёт шифрование, данные пропадут из рекавери, а старый ключ в `/metadata/vold/metadata_encryption` может увести телефон обратно в рекавери.
-
-## Сборка
-
-Один workflow, без выбора режима. Actions, Build, Run workflow.
-
-FUS на запрос `CWI1` и `CEYB1` отдаёт более новые сборки того же бита. Actions берёт эти два AP из релиза [firmware-v1](https://github.com/homestuck-ng/hs-ui/releases/tag/firmware-v1). BL и CP в релиз не входят. Если релиза нет, скрипт спрашивает FUS и останавливается, когда PDA не совпал.
+Actions, Build, Run workflow. One workflow, no options. Firmware AP files come from [firmware-v1](https://github.com/homestuck-ng/hs-ui/releases/tag/firmware-v1). BL and CP are not in that release.
