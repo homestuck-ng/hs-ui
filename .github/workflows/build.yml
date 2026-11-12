@@ -46,7 +46,7 @@ jobs:
           mkdir -p /tmp/sload-src
           echo hi > /tmp/sload-src/a
           truncate -s 64M /tmp/sload.img
-          "$mkfs" -f -O extra_attr,compression /tmp/sload.img
+          "$mkfs" -f -O compression /tmp/sload.img
           "$sload" -f /tmp/sload-src -t / -c -a lz4 -r /tmp/sload.img
 
       - name: Install samloader

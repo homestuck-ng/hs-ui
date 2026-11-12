@@ -177,7 +177,7 @@ mk_f2fs() {
         echo "sload $label $bytes"
         rm -f "$image"
         truncate -s "$bytes" "$image"
-        mkfs.f2fs -q -f -O extra_attr,compression -l "$label" -o 8 "$image"
+        mkfs.f2fs -q -f -O compression -l "$label" -o 8 "$image"
         set +e
         sload_log="$(sudo "$sload_bin" -f "$tree" -t / -P -c -a lz4 -r "$image" 2>&1)"
         sload_rc=$?
