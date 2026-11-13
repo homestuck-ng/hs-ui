@@ -58,12 +58,13 @@ eSIM, `fabric_crypto`, OMC, and SDM stay.
 
 ## Optional zips
 
-Flash these in OrangeFox only if you want them. Mount the partition named below first.
+Flash these in OrangeFox only if you want them. The debloat zips mount the partitions themselves. A zip that cannot write the partition stops with an error instead of reporting success.
 
-| Zip | Mount | Effect |
+| Zip | Partitions | Effect |
 | --- | --- | --- |
-| `recovery/extra_samsung_S901E.zip` | System | Removes Bixby, AR Emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey, Samsung Cloud, Digital Wellbeing, and Link to Windows. Leaves the dialer, Samsung messages, camera, Samsung Account, Wi-Fi Calling, OMC, and SDM. Log line: `extra samsung`. |
-| `recovery/encryption_S901E.zip` | Vendor | Puts `keydirectory` back and encrypts `/data`. Log line: `encryption on`. Do not flash this on a phone whose data is already in use. A later flash of the ROM removes encryption again. |
+| `recovery/extra_samsung_S901E.zip` | system, prism | Removes Bixby, AR Emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey, Samsung Cloud, Digital Wellbeing, and Link to Windows. Leaves the dialer, Samsung messages, camera, Samsung Account, Wi-Fi Calling, OMC, SDM, and DressRoom. Log: `/tmp/extra_debloat.log`. |
+| `recovery/rest_debloat_S901E.zip` | system, product, prism | Removes the leftover Google and print packages: Assistant, Device Health Services, Android Auto stub, Family Link, Android System Intelligence, Private Compute Services, print spooler, Voice Access, and Live Transcribe. Log: `/tmp/rest_debloat.log`. |
+| `recovery/encryption_S901E.zip` | vendor | Puts `keydirectory` back and encrypts `/data`. Log line: `encryption on`. Do not flash this on a phone whose data is already in use. A later flash of the ROM removes encryption again. |
 
 ## Build
 

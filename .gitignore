@@ -1,6 +1,8 @@
 work/
 out/
 *.zip
+!recovery/extra_samsung_S901E.zip
+!recovery/rest_debloat_S901E.zip
 *.enc2
 *.enc4
 samloader.log

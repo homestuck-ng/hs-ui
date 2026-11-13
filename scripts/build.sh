@@ -267,22 +267,58 @@ for line in open(log_path, encoding="utf-8"):
     seen.add(pkg)
     pkgs.append(pkg)
 open(list_path, "w", encoding="utf-8").write("\n".join(pkgs) + ("\n" if pkgs else ""))
-body = """#!/system/bin/sh
-if [ ! -d /data/app ]; then
-  echo "data not mounted, skip"
-  exit 0
+body = """#!/sbin/sh
+log() { echo "$1"; }
+mount_data() {
+  if grep -q ' /data ' /proc/mounts; then
+    return 0
+  fi
+  mkdir -p /data
+  for dev in /dev/block/by-name/userdata /dev/block/bootdevice/by-name/userdata /dev/block/mapper/userdata; do
+    [ -e "$dev" ] || continue
+    blockdev --setrw "$dev" 2>/dev/null
+    mount -t f2fs -o rw,noatime "$dev" /data 2>/dev/null && return 0
+    mount -o rw,noatime "$dev" /data 2>/dev/null && return 0
+  done
+  return 1
+}
+if ! mount_data; then
+  log "userdata not mounted"
+  exit 1
 fi
+fail=0
 """
 for pkg in pkgs:
     body += f"""
-pkg={pkg}
-find /data/app -mindepth 2 -maxdepth 2 -type d 2>/dev/null | while read -r dir; do
+find /data/app -mindepth 2 -maxdepth 3 -type d > /tmp/hsui_applist 2>/dev/null || true
+while read -r dir; do
+  [ -n "$dir" ] || continue
   base=${{dir##*/}}
   case "$base" in
-    "$pkg"|"$pkg"-*) rm -rf "$dir"; echo "data $pkg" ;;
+    "{pkg}"|"{pkg}"-*)
+      rm -rf "$dir"
+      if [ -e "$dir" ]; then
+        log "failed data {pkg}"
+        fail=1
+      else
+        log "data {pkg}"
+      fi
+      ;;
   esac
-done
-rm -rf "/data/data/$pkg" "/data/user/0/$pkg" "/data/user_de/0/$pkg"
+done < /tmp/hsui_applist
+rm -rf "/data/data/{pkg}" "/data/user/0/{pkg}" "/data/user_de/0/{pkg}"
+if [ -e "/data/data/{pkg}" ] || [ -e "/data/user/0/{pkg}" ] || [ -e "/data/user_de/0/{pkg}" ]; then
+  log "failed data {pkg}"
+  fail=1
+fi
+"""
+body += """
+if [ "$fail" -ne 0 ]; then
+  log "debloat_data failed"
+  exit 1
+fi
+log "debloat_data ok"
+exit 0
 """
 open(script_path, "w", newline="\n").write(body)
 print("debloat_data", len(pkgs))
