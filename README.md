@@ -53,7 +53,7 @@ Calls, SMS, camera, gallery, Samsung keyboard, DeX, My Files, Routines, Reminder
 
 ## What is removed
 
-The UN1CA r0q list, plus Knox and telemetry: Chrome, Gmail, Maps, YouTube, Google Messages, Duo, OneDrive, Facebook services, Game Launcher, Samsung Pass, payment and auth frameworks, factory tests, SIM unlock, Play Auto Install, Rubin, the agent stack, IMS Logger, Hiya, Knox Guard, KnoxCore, Knox Analytics, KPE, and MDM.
+The UN1CA r0q debloat list: Chrome, Gmail, Maps, YouTube, Google Messages, Duo, OneDrive, Facebook services, Game Launcher, Samsung Pass, payment and auth frameworks, factory tests, SIM unlock, and Play Auto Install. KnoxGuard and the Knox framework pieces that UN1CA removes in deknox are still removed here.
 
 eSIM, `fabric_crypto`, OMC, and SDM stay.
 

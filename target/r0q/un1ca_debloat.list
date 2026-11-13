@@ -1,6 +1,7 @@
 # UN1CA unica/debloat.sh plus target/r0q/debloat.sh.
 # partition is the image root. The path is relative to that root.
 # eSIM apps stay: r0q supports eSIM. fabric_crypto stays: UN1CA r0q is API 34.
+# DiagMonAgent9 is the One UI 5.1 folder. UN1CA only names DiagMonAgent91.
 
 system dpolicy_system
 system system/bin/ssud
@@ -75,6 +76,7 @@ system system/priv-app/AuthFramework
 system system/priv-app/BCService
 system system/priv-app/CIDManager
 system system/priv-app/DeviceKeystring
+system system/priv-app/DiagMonAgent9
 system system/priv-app/DiagMonAgent91
 system system/priv-app/DigitalKey
 system system/priv-app/FBInstaller_NS
@@ -99,19 +101,6 @@ system system/etc/permissions/privapp-permissions-com.samsung.petservice.xml
 system system/etc/permissions/privapp-permissions-com.samsung.videoscan.xml
 system system/priv-app/PetService
 system system/priv-app/VideoScan
-system system/priv-app/RubinVersion33
-system system/priv-app/SamsungSmartSuggestions
-system system/priv-app/StoryService
-system system/priv-app/MateAgent
-system system/app/BBCAgent
-system system/app/DAAgent
-system system/priv-app/DeviceQualityAgent3
-system system/priv-app/ImsLogger
-system system/app/HiyaService
-system system/priv-app/KnoxCore
-system system/priv-app/knoxanalyticsagent
-system system/priv-app/KPECore
-system system/app/MDMApp
 
 vendor etc/dpolicy
 vendor recovery-from-boot.p
