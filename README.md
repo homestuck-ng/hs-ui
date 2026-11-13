@@ -3,7 +3,7 @@
 ![HS-UI 5.1](docs/hs-ui-5.1.jpg)
 
 One UI 5.1 for the Galaxy S22, SM-S901E (r0q, XXV), on a binary C bootloader.
-Our chat: t.me/+40RGROGV-2IzZWRi
+# Our chat: [Telegram Chat](https://t.me/+40RGROGV-2IzZWRi)
 
 Debloat, Knox removal, and the r0q file lists come from [UN1CA](https://github.com/salvogiangreco/UN1CA). The Bluetooth patch comes from [BluetoothLibraryPatcher](https://github.com/3arthur6/BluetoothLibraryPatcher).
 
