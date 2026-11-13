@@ -40,7 +40,9 @@ Files are in `recovery/`.
 
 ### 3. ROM
 
-The flashable file is [OneUI51_S901E_XXV_hybrid.zip](https://github.com/homestuck-ng/hs-ui/releases/tag/hs-ui-5.1). It contains `META-INF`. Flash that file in OrangeFox.
+The flashable file is `OneUI51_S901E_XXV_hybrid.zip`. Download the artifact from the latest successful [Build](https://github.com/homestuck-ng/hs-ui/actions/workflows/build.yml) run. Open it and flash `OneUI51_S901E_XXV_hybrid.zip` in OrangeFox. That zip contains `META-INF`.
+
+The file already built is the artifact on [run 43290625671](https://github.com/homestuck-ng/hs-ui/actions/runs/43290625671). That download is the flashable zip itself. Artifacts are kept for 90 days.
 
 Dirty flash is supported. Data is not formatted and is not encrypted. If `/metadata/vold/metadata_encryption` already exists, delete that directory before the first boot.
 
