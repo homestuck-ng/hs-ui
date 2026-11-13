@@ -247,6 +247,7 @@ PY
 echo "=== framework patches ==="
 echo "debloat mode un1ca"
 python3 "$ROOT/scripts/enable_multiuser.py" "$TREE/system"
+python3 "$ROOT/scripts/skip_webview32.py" "$TREE/system"
 python3 "$ROOT/scripts/patch_bluetooth_lib.py" "$TREE"
 : > "$STAGE/debloat.txt"
 python3 "$ROOT/scripts/apply_un1ca_debloat.py" "$TREE" \
