@@ -99,7 +99,7 @@ def main():
         'package_extract_file("debloat_data.sh", "/tmp/debloat_data.sh");',
         'package_extract_file("remove.list", "/tmp/remove.list");',
         'run_program("/sbin/sh", "/tmp/debloat_data.sh");',
-        'ui_print("Done. Do not flash BL/CP. Format data if this is a new install.");',
+        'ui_print("Done. Do not flash BL/CP. Format data on first encrypted install.");',
     ]
     meta = os.path.join(stage, "META-INF", "com", "google", "android")
     os.makedirs(meta, exist_ok=True)

@@ -133,22 +133,26 @@ mount_data() {
   for dev in \
     /dev/block/by-name/userdata \
     /dev/block/bootdevice/by-name/userdata \
-    /dev/block/mapper/userdata
+    /dev/block/mapper/userdata \
+    /dev/block/platform/soc/1d84000.ufshc/by-name/userdata
   do
     if [ ! -e "$dev" ]; then
       continue
     fi
     blockdev --setrw "$dev" 2>/dev/null
+    # Plain f2fs only — flash this zip after Format Data and before first boot,
+    # while userdata is still unencrypted.
     mount -t f2fs -o rw,noatime "$dev" /data 2>/dev/null && return 0
     mount -o rw,noatime "$dev" /data 2>/dev/null && return 0
   done
   return 1
 }
 wipe_data() {
+  # After Format Data, /data is empty; mounting may still fail if FBE already
+  # started. System/product/prism removals are what matter — do not fail the zip.
   if ! mount_data; then
-    log "userdata not mounted"
-    echo x >> /tmp/hsui_debloat_fail
-    return 1
+    log "userdata not mounted (ok after format / before first boot)"
+    return 0
   fi
   find /data/app -mindepth 2 -maxdepth 3 -type d > /tmp/hsui_applist 2>/dev/null || true
   while read -r dir; do
@@ -223,6 +227,9 @@ def pack(name, script_dir, script, updater):
 
 
 def main():
+    # Matched to SM-S901E: Canta uninstall-for-user list + pm-disabled system
+    # packages. Still leave alone packages Canta did not touch and that stay
+    # enabled (print stack, Turbo, AS/PCS, OmaCP, factory tests, SwiftKey factory).
     extra_system = [
         "priv-app/Bixby",
         "app/BixbyWakeup",
@@ -258,10 +265,42 @@ def main():
         "priv-app/SamsungCloudClient",
         "priv-app/DigitalWellbeing",
         "priv-app/LinkToWindowsService",
+        "priv-app/AuthFactorTouchService",
+        "app/MdecService",
+        "priv-app/DeXonPC",
+        "app/UnifiedWFC",
+        # Canta uninstall-for-user (Samsung)
+        "app/AASAservice",
+        "app/AllshareFileShare",
+        "priv-app/EarphoneTypeC",
+        "priv-app/OMCAgent5",
+        "priv-app/Routines",
+        "priv-app/SecAppSeparation",
+        "priv-app/ShareLive",
+        "priv-app/BeaconManager",
+        "priv-app/EasySetup",
+        "priv-app/Fmm",
+        "priv-app/IpsGeofence",
+        "priv-app/Quickboard",
+        "app/Privacy",
+        "priv-app/SDMConfig",
+        "priv-app/PeopleStripe",
+        "app/ShortcutBackupService",
+        "priv-app/SmartCallProvider",
+        "app/VTCameraSetting",
+        "priv-app/KLMSAgent",
+        "priv-app/SecureFolder",
+        "app/RcsSettings",
+        "app/BluetoothAgent",
+        "priv-app/KnoxDesktopLauncher",
+        "priv-app/SamsungMagnifier3",
+        "priv-app/SendHelpMessage",
+        "app/SamsungWeather",
+        "priv-app/PhoneErrService",
+        "app/UniversalMDMClient",
     ]
     extra_prism = [
         "app/SwiftKey-market-arm64-v8a-release",
-        "app/SwiftKeyFactorySettings-samsung",
     ]
     extra_pkgs = [
         "com.samsung.android.bixby.agent",
@@ -297,62 +336,74 @@ def main():
         "com.sec.android.easyMover.Agent",
         "com.samsung.android.smartswitchassistant",
         "com.touchtype.swiftkey",
-        "com.swiftkey.swiftkeyconfigurator",
         "com.samsung.android.scloud",
         "com.samsung.android.forest",
         "com.samsung.android.mdx",
         "com.samsung.android.app.tips",
+        "com.samsung.cmfa.AuthTouch",
+        "com.samsung.android.mdecservice",
+        "com.sec.android.app.dexonpc",
+        "com.sec.unifiedwfc",
+        "com.samsung.aasaservice",
+        "com.samsung.android.allshare.service.fileshare",
+        "com.samsung.android.app.earphonetypec",
+        "com.samsung.android.app.omcagent",
+        "com.samsung.android.app.routines",
+        "com.samsung.android.appseparation",
+        "com.samsung.android.app.sharelive",
+        "com.samsung.android.beaconmanager",
+        "com.samsung.android.easysetup",
+        "com.samsung.android.fmm",
+        "com.samsung.android.ipsgeofence",
+        "com.samsung.android.mdx.quickboard",
+        "com.samsung.android.privateshare",
+        "com.samsung.android.sdm.config",
+        "com.samsung.android.service.peoplestripe",
+        "com.samsung.android.shortcutbackupservice",
+        "com.samsung.android.smartcallprovider",
+        "com.samsung.android.vtcamerasettings",
+        "com.samsung.klmsagent",
+        "com.samsung.knox.securefolder",
+        "com.samsung.rcs",
+        "com.sec.android.app.bluetoothagent",
+        "com.sec.android.app.desktoplauncher",
+        "com.sec.android.app.magnifier",
+        "com.sec.android.app.safetyassurance",
+        "com.sec.android.daemonapp",
+        "com.sec.app.RilErrorNotifier",
+        "com.sec.enterprise.knox.cloudmdm.smdms",
     ]
     rest_system = [
-        "app/EasterEgg",
         "app/BasicDreams",
         "app/PhotoTable",
         "app/VoiceAccess",
         "app/LiveTranscribe",
-        "priv-app/OmaCP",
+        "app/Stk",
+        "app/Stk2",
         "priv-app/AppUpdateCenter",
-        "priv-app/serviceModeApp_FB",
-        "priv-app/HwModuleTest",
-        "app/Cameralyzer",
-        "app/TetheringAutomation",
-        "priv-app/BuiltInPrintService",
-        "app/PrintSpooler",
-        "app/GooglePrintRecommendationService",
+        "priv-app/DocumentsUIGoogle",
     ]
     rest_product = [
         "priv-app/Velvet",
-        "priv-app/Turbo",
         "priv-app/AndroidAutoStub",
         "priv-app/FamilyLinkParentalControls",
-        "priv-app/AndroidSystemIntelligence",
-        "priv-app/PrivateComputeServices",
     ]
-    rest_prism = extra_prism
     rest_pkgs = [
-        "com.android.egg",
         "com.android.dreams.basic",
         "com.android.dreams.phototable",
+        "com.android.stk",
+        "com.android.stk2",
         "com.google.android.googlequicksearchbox",
-        "com.google.android.apps.turbo",
         "com.google.android.apps.accessibility.voiceaccess",
         "com.google.audio.hearing.visualization.accessibility.scribe",
         "com.google.android.projection.gearhead",
-        "com.wsomacp",
         "com.samsung.android.app.updatecenter",
-        "com.sec.android.app.servicemodeapp",
-        "com.sec.android.app.hwmoduletest",
-        "com.sec.factory.cameralyzer",
-        "com.sec.automation",
-        "com.touchtype.swiftkey",
-        "com.swiftkey.swiftkeyconfigurator",
-        "com.android.bips",
-        "com.android.printspooler",
-        "com.google.android.printservice.recommendation",
         "com.google.android.gms.supervision",
-        "com.google.android.as",
-        "com.google.android.as.oss",
+        "com.google.android.documentsui",
+        "com.touchtype.swiftkey",
     ]
     extra_body = f"""
+log "flash after ROM + Format Data, before first boot"
 open_part system f2fs || exit 1
 SYS=$(app_root "$RESULT") || exit 1
 log "system $SYS"
@@ -364,6 +415,7 @@ wipe_tree "$PRISM" "prism " {words(extra_prism)}
 wipe_data {words(extra_pkgs)}
 """
     rest_body = f"""
+log "flash after ROM + Format Data, before first boot"
 open_part system f2fs || exit 1
 SYS=$(app_root "$RESULT") || exit 1
 log "system $SYS"
@@ -372,20 +424,20 @@ open_part product f2fs || exit 1
 PROD=$(app_root "$RESULT") || exit 1
 log "product $PROD"
 wipe_tree "$PROD" "product " {words(rest_product)}
-open_part prism ext4 || exit 1
-PRISM=$(app_root "$RESULT") || exit 1
-log "prism $PRISM"
-wipe_tree "$PRISM" "prism " {words(rest_prism)}
 wipe_data {words(rest_pkgs)}
 """
-    extra_updater = """ui_print("Extra Samsung packages");
-ui_print("Does not touch calls, account, camera, Wi-Fi Calling or DressRoom");
+    extra_updater = """ui_print("Extra Samsung + Canta removals");
+ui_print("Flash after Format Data, before first boot");
+ui_print("Includes Routines/FMM/Weather/SecureFolder/DeX UI/WFC/...");
+ui_print("Keeps dialer, messages, camera, account, DressRoom");
 package_extract_dir("extra", "/tmp/extra");
 run_program("/sbin/sh", "/tmp/extra/apply.sh");
 ui_print("Done");
 """
-    rest_updater = """ui_print("Remove leftover debloat packages");
-ui_print("system, product and prism");
+    rest_updater = """ui_print("Rest debloat + Canta Google leftovers");
+ui_print("Flash after Format Data, before first boot");
+ui_print("Removes Assistant/Auto/FamilyLink/DocumentsUI/STK");
+ui_print("Keeps print/Turbo/AS/OmaCP/factory (Canta did not remove them)");
 package_extract_dir("rest", "/tmp/rest");
 run_program("/sbin/sh", "/tmp/rest/apply.sh");
 ui_print("Done");

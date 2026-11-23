@@ -24,13 +24,13 @@ The phone must already be on One UI 6.1 binary C, `S901EXXSCEYB1`, region XXV.
 
 Odin: BL, AP, CP, HOME_CSC. HOME_CSC keeps data. CSC erases it. Re-Partition off. Skip this step if Software information already shows `S901EXXSCEYB1`.
 
-### 2. Recovery
+### 2. Recovery (FBE decrypt fork)
 
-Files are in `recovery/`.
+Files are in `recovery/`. The OrangeFox here is built from [homestuck-ng/android_device_samsung_r0q_twrp](https://github.com/homestuck-ng/android_device_samsung_r0q_twrp) (`fox_12.1`, also mirrored under `external/orangefox_device_samsung_r0q`). That fork turns on QCOM FBE decrypt and points `/data` at Samsung metadata encryption so OrangeFox can unlock with the **Android lockscreen PIN / password / pattern**.
 
 | File | Role |
 | --- | --- |
-| `OrangeFox-R12.0_A12-Unofficial-r0q.img.tar` | OrangeFox for Odin. Taken from `OrangeFox-R12.0_A12-Unofficial-r0q.zip`. The full zip is over 100 MB, so GitHub will not store it. |
+| `OrangeFox-R12.0_A12-Unofficial-r0q.img.tar` | OrangeFox for Odin (FBE fork). Rebuild via [OrangeFox](https://github.com/homestuck-ng/hs-ui/actions/workflows/orangefox.yml). |
 | `patched-vb.tar` | `vbmeta.img`, flags `00 00 00 03` |
 
 1. Enable OEM unlock. Power off. Hold both volume keys, connect the cable, then press volume up to enter Download mode.
@@ -38,14 +38,13 @@ Files are in `recovery/`.
 3. AP: the OrangeFox tar. CP: `patched-vb.tar`.
 4. Start. Wait for PASS.
 5. Do not boot the system. Hold volume down and power until the screen goes off, then immediately hold volume up and power to open OrangeFox. A normal boot restores the stock recovery.
+6. When OrangeFox asks for a password, enter the same lockscreen credential used in Android.
 
 ### 3. ROM
 
 The flashable file is `OneUI51_S901E_XXV_hybrid.zip`. Download the artifact from the latest successful [Build](https://github.com/homestuck-ng/hs-ui/actions/workflows/build.yml) run. Open it and flash `OneUI51_S901E_XXV_hybrid.zip` in OrangeFox. That zip contains `META-INF`.
 
-The file already built is the artifact on [run 43290625671](https://github.com/homestuck-ng/hs-ui/actions/runs/43290625671). That download is the flashable zip itself. Artifacts are kept for 90 days.
-
-Dirty flash is supported. Data is not formatted and is not encrypted. If `/metadata/vold/metadata_encryption` already exists, delete that directory before the first boot.
+This hybrid keeps stock userdata FBE (`fileencryption` + `metadata_encryption` + `keydirectory`). On a first install onto encrypted data that was created by a different policy, **Format Data** in OrangeFox, then set a lockscreen credential after the first Android boot. Dirty flash of the zip itself is fine once the policy already matches.
 
 ## What stays
 
@@ -59,14 +58,16 @@ eSIM, `fabric_crypto`, OMC, and SDM stay.
 
 ## Optional zips
 
-Flash these in OrangeFox only if you want them. The debloat zips mount the partitions themselves. A zip that cannot write the partition stops with an error instead of reporting success.
+Flash order in OrangeFox: **ROM zip → Format Data → these debloat zips → reboot to system** (first boot creates FBE). Do not boot Android between Format Data and the debloat zips. The zips mount system/product/prism themselves and only soft-skip `/data` if it is not mountable yet.
 
 | Zip | Partitions | Effect |
 | --- | --- | --- |
-| `recovery/extra_samsung_S901E.zip` | system, prism | Removes Bixby, AR Emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey, Samsung Cloud, Digital Wellbeing, and Link to Windows. Leaves the dialer, Samsung messages, camera, Samsung Account, Wi-Fi Calling, OMC, SDM, and DressRoom. Log: `/tmp/extra_debloat.log`. |
-| `recovery/rest_debloat_S901E.zip` | system, product, prism | Removes the leftover Google and print packages: Assistant, Device Health Services, Android Auto stub, Family Link, Android System Intelligence, Private Compute Services, print spooler, Voice Access, and Live Transcribe. Log: `/tmp/rest_debloat.log`. |
-| `recovery/encryption_S901E.zip` | vendor | Puts `keydirectory` back and encrypts `/data`. Log line: `encryption on`. Do not flash this on a phone whose data is already in use. A later flash of the ROM removes encryption again. |
+| `recovery/extra_samsung_S901E.zip` | system, prism | Removes Bixby, AR/emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey market, Samsung Cloud, Digital Wellbeing, Link to Windows, plus packages disabled on-device: AuthTouch, MDEC, DeXonPC, UnifiedWFC. Leaves dialer, messages, camera, Samsung Account, DressRoom. Keeps SwiftKey factory settings. Log: `/tmp/extra_debloat.log`. |
+| `recovery/rest_debloat_S901E.zip` | system, product | Removes Assistant (Velvet), Android Auto stub, Family Link, App Update Center, DocumentsUIGoogle, Voice Access, Live Transcribe, BasicDreams/PhotoTable. Keeps print stack, Turbo, Android System Intelligence / Private Compute, EasterEgg, OmaCP, factory/service tests. Log: `/tmp/rest_debloat.log`. |
+
+The old `encryption_S901E.zip` is gone. Encryption stays in the hybrid ROM (stock vendor + vendor_boot FBE flags). OrangeFox FBE unlock is the [r0q_twrp fork](https://github.com/homestuck-ng/android_device_samsung_r0q_twrp) `fox_12.1`.
 
 ## Build
 
-Actions, Build, Run workflow. One workflow, no options. Firmware AP files come from [firmware-v1](https://github.com/homestuck-ng/hs-ui/releases/tag/firmware-v1). BL and CP are not in that release.
+- ROM: Actions → Build → Run workflow. Firmware AP files come from [firmware-v1](https://github.com/homestuck-ng/hs-ui/releases/tag/firmware-v1). BL and CP are not in that release.
+- OrangeFox: Actions → OrangeFox → Run workflow. Uses `external/orangefox_device_samsung_r0q` and uploads an Odin tar artifact.

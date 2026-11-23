@@ -326,8 +326,9 @@ print("debloat_data", len(pkgs))
 PY
 chmod 755 "$STAGE/debloat_data.sh"
 
-echo "=== userdata stays plain f2fs ==="
-python3 "$ROOT/scripts/strip_userdata_encryption.py" "$TREE/vendor"
+echo "=== userdata keeps stock FBE flags ==="
+# Do not strip fileencryption / metadata_encryption / keydirectory.
+# OrangeFox fork decrypts with the Android lockscreen credential.
 
 echo "=== images ==="
 mk_f2fs system "$TREE/system" "$WORK/meta/system.jsonl" "$WORK/system.img" "$SYSTEM_BYTES"
@@ -368,11 +369,11 @@ pad4k "$WORK/odm.img"
 echo "=== boot and vbmeta ==="
 cp -a "$BOOT/boot.img" "$STAGE/boot.img"
 cp -a "$BOOT/dtbo.img" "$STAGE/dtbo.img"
-python3 "$ROOT/scripts/patch_vendor_boot.py" \
-    "$BOOT/vendor_boot.img" "$STAGE/vendor_boot.img" "$WORK/vbpatch"
+# Keep stock vendor_boot fstab encryption flags (FBE + keydirectory).
+cp -a "$BOOT/vendor_boot.img" "$STAGE/vendor_boot.img"
 python3 "$ROOT/scripts/vbmeta_patch.py" "$SYS/vbmeta.img" "$STAGE/vbmeta.img"
 python3 "$ROOT/scripts/vbmeta_patch.py" "$SYS/vbmeta_system.img" "$STAGE/vbmeta_system.img"
-rm -rf "$SYS" "$BOOT" "$WORK/vbpatch"
+rm -rf "$SYS" "$BOOT"
 
 ln -sfn "$WORK/system.img" "$STAGE/system.img"
 ln -sfn "$WORK/product.img" "$STAGE/product.img"

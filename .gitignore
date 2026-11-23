@@ -9,3 +9,5 @@ samloader.log
 __pycache__/
 *.pyc
 prebuilts/smali/
+# Device tree lives in https://github.com/homestuck-ng/android_device_samsung_r0q_twrp
+external/orangefox_device_samsung_r0q/
