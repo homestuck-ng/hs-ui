@@ -27,14 +27,11 @@ system app/StickerCenter
 system app/MinusOnePage
 system priv-app/ThemeStore
 system priv-app/ThemeCenter
-system priv-app/SamsungAccount
 system priv-app/Routines
 system priv-app/DeXonPC
 system priv-app/KnoxDesktopLauncher
 system priv-app/DesktopModeUiService
 system priv-app/DesktopSystemUI
-system etc/sysconfig/samsungaccount.xml
-system etc/permissions/privapp-permissions-com.osp.app.signin.xml
 system etc/permissions/privapp-permissions-com.samsung.android.app.routines.xml
 system etc/permissions/privapp-permissions-com.samsung.android.themecenter.xml
 system etc/permissions/privapp-permissions-themestore.xml
@@ -166,7 +163,6 @@ data com.samsung.android.stickercenter
 data com.samsung.android.app.spage
 data com.samsung.android.themestore
 data com.samsung.android.themecenter
-data com.osp.app.signin
 data com.samsung.android.app.routines
 data com.sec.android.app.dexonpc
 data com.sec.android.dexsystemui
