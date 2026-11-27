@@ -55,8 +55,7 @@ DELETE_REL = [
     "etc/permissions/signature-permissions-com.samsung.android.kgclient.xml",
     "etc/sysconfig/preinstalled-packages-com.samsung.android.coldwalletservice.xml",
     "framework/service-samsung-blockchain.jar",
-    "lib/android.hardware.weaver@1.0.so",
-    "lib64/android.hardware.weaver@1.0.so",
+    # android.hardware.weaver@1.0.so stays. OrangeFox and vold call IWeaver.
     "priv-app/HdmApk",
     "priv-app/KnoxAIFrameworkApp",
     "priv-app/KnoxFrameBufferProvider",

@@ -133,11 +133,13 @@ echo "stock bytes system=$SYSTEM_BYTES vendor=$VENDOR_BYTES"
 
 echo "=== vintf ==="
 MAN="$TREE/vendor/etc/vintf/manifest"
+# iweaver_v1_manifest.xml stays. Lockscreen synthetic passwords use
+# android.hardware.weaver@1.0::IWeaver/default. Deleting the fragment
+# leaves the HAL in the merged manifest with no service behind it.
 rm -f \
     "$MAN/vendor.samsung.hardware.sehradio_manifest_2_31.xml" \
     "$MAN/vendor.samsung.hardware.radio_manifest_2_31.xml" \
-    "$MAN/vendor.samsung.hardware.radio.exclude.qcom.xml" \
-    "$MAN/iweaver_v1_manifest.xml"
+    "$MAN/vendor.samsung.hardware.radio.exclude.qcom.xml"
 python3 "$ROOT/scripts/vermagic.py" "$TREE/vendor_dlkm"
 
 pad4k() {
