@@ -62,8 +62,8 @@ Flash order in OrangeFox: **ROM zip → Format Data → these debloat zips → r
 
 | Zip | Partitions | Effect |
 | --- | --- | --- |
-| `recovery/extra_samsung_S901E.zip` | system, prism | Removes Bixby, AR/emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey market, Samsung Cloud, Digital Wellbeing, Link to Windows, plus packages disabled on-device: AuthTouch, MDEC, DeXonPC, UnifiedWFC. Leaves dialer, messages, camera, Samsung Account, DressRoom. Keeps SwiftKey factory settings. Log: `/tmp/extra_debloat.log`. |
-| `recovery/rest_debloat_S901E.zip` | system, product | Removes Assistant (Velvet), Android Auto stub, Family Link, App Update Center, DocumentsUIGoogle, Voice Access, Live Transcribe, BasicDreams/PhotoTable. Keeps print stack, Turbo, Android System Intelligence / Private Compute, EasterEgg, OmaCP, factory/service tests. Log: `/tmp/rest_debloat.log`. |
+| `recovery/extra_samsung_S901E.zip` | system, prism | List: `target/r0q/extra_debloat.list`. Removes Bixby, AR/emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey market, Samsung Cloud, Digital Wellbeing, Link to Windows. Leaves Wi-Fi Calling, OMC, SDM, fingerprint, Find My Mobile, Routines, Secure Folder, DeX on PC, KLMSAgent, RCS, dialer, messages, camera. Log: `/tmp/extra_debloat.log`. |
+| `recovery/rest_debloat_S901E.zip` | system, product | List: `target/r0q/rest_debloat.list`. Removes Assistant, Android Auto stub, Family Link, App Update Center, Voice Access, Live Transcribe, BasicDreams/PhotoTable. Leaves SIM toolkit and DocumentsUI. Log: `/tmp/rest_debloat.log`. |
 
 The old `encryption_S901E.zip` is gone. Encryption stays in the hybrid ROM (stock vendor + vendor_boot FBE flags). OrangeFox FBE unlock is the [r0q_twrp fork](https://github.com/homestuck-ng/android_device_samsung_r0q_twrp) `fox_12.1`.
 

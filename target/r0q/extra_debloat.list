@@ -1,0 +1,79 @@
+# Optional zip extra_samsung_S901E.zip.
+# Same columns as un1ca_debloat.list. data lines also wipe /data.
+# Left installed: Wi-Fi Calling, OMC, SDM, fingerprint touch, Find My Mobile,
+# SOS, Routines, Secure Folder, DeX on PC, KLMSAgent, RCS.
+
+system priv-app/Bixby
+system app/BixbyWakeup
+system priv-app/BixbyVisionFramework3.5
+system priv-app/SettingsBixby
+system app/VisionIntelligence3.7
+system priv-app/SVoiceIME
+system priv-app/BsdService
+system priv-app/SohService
+system priv-app/Finder
+system priv-app/SVCAgent
+system priv-app/YourPhone_P1_5
+system priv-app/GameTools_Dream
+system priv-app/GameOptimizingService
+system app/ARZone
+system priv-app/AREmoji
+system priv-app/AREmojiEditor
+system app/ARDrawing
+system priv-app/SmartTouchCall
+system priv-app/AvatarEmojiSticker
+system priv-app/StickerFaceARAvatar
+system app/StickerCenter
+system app/MinusOnePage
+system priv-app/ThemeStore
+system priv-app/GalaxyApps_OPEN
+system priv-app/SamsungBilling
+system app/KidsHome_Installer
+system app/GearManagerStub
+system app/DictDiotekForSec
+system priv-app/GpuWatchApp
+system app/SmartSwitchAgent
+system priv-app/SmartSwitchAssistant
+system priv-app/SamsungCloudClient
+system priv-app/DigitalWellbeing
+system priv-app/LinkToWindowsService
+
+prism app/SwiftKey-market-arm64-v8a-release
+
+data com.samsung.android.bixby.agent
+data com.samsung.android.bixby.wakeup
+data com.samsung.android.bixbyvision.framework
+data com.samsung.android.app.settings.bixby
+data com.samsung.android.visionintelligence
+data com.samsung.android.svoiceime
+data com.samsung.sait.bsdservice
+data com.samsung.sait.sohservice
+data com.samsung.android.app.galaxyfinder
+data com.samsung.android.svcagent
+data com.microsoft.appmanager
+data com.samsung.android.game.gametools
+data com.samsung.android.game.gos
+data com.samsung.android.arzone
+data com.samsung.android.aremoji
+data com.samsung.android.aremojieditor
+data com.samsung.android.ardrawing
+data com.samsung.android.visualars
+data com.sec.android.mimage.avatarstickers
+data com.samsung.android.app.camera.sticker.facearavatar.preload
+data com.samsung.android.stickercenter
+data com.samsung.android.app.spage
+data com.samsung.android.themestore
+data com.sec.android.app.samsungapps
+data com.sec.android.app.billing
+data com.samsung.android.kidsinstaller
+data com.samsung.android.app.watchmanagerstub
+data com.diotek.sec.lookup.dictionary
+data com.samsung.gpuwatchapp
+data com.sec.android.easyMover
+data com.sec.android.easyMover.Agent
+data com.samsung.android.smartswitchassistant
+data com.touchtype.swiftkey
+data com.samsung.android.scloud
+data com.samsung.android.forest
+data com.samsung.android.mdx
+data com.samsung.android.app.tips

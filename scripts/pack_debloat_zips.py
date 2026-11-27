@@ -226,218 +226,70 @@ def pack(name, script_dir, script, updater):
     print("zip", dest, os.path.getsize(dest))
 
 
+def load_debloat(path):
+    groups = {}
+    with open(path, encoding="utf-8") as handle:
+        for raw in handle:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            part, rel = line.split(None, 1)
+            groups.setdefault(part, []).append(rel)
+    return groups
+
+
+def body_for(title, groups, mounts):
+    lines = [f'log "{title}"']
+    for part, fstype, var, tag in mounts:
+        rels = groups.get(part, [])
+        if not rels:
+            continue
+        lines.append(f"open_part {part} {fstype} || exit 1")
+        lines.append(f'{var}=$(app_root "$RESULT") || exit 1')
+        lines.append(f'log "{part} ${var}"')
+        lines.append(f'wipe_tree "${var}" "{tag}" {words(rels)}')
+    data = groups.get("data", [])
+    if data:
+        lines.append(f"wipe_data {words(data)}")
+    return "\n".join(lines) + "\n"
+
+
 def main():
-    # Matched to SM-S901E: Canta uninstall-for-user list + pm-disabled system
-    # packages. Still leave alone packages Canta did not touch and that stay
-    # enabled (print stack, Turbo, AS/PCS, OmaCP, factory tests, SwiftKey factory).
-    extra_system = [
-        "priv-app/Bixby",
-        "app/BixbyWakeup",
-        "priv-app/BixbyVisionFramework3.5",
-        "priv-app/SettingsBixby",
-        "app/VisionIntelligence3.7",
-        "priv-app/SVoiceIME",
-        "priv-app/BsdService",
-        "priv-app/SohService",
-        "priv-app/Finder",
-        "priv-app/SVCAgent",
-        "priv-app/YourPhone_P1_5",
-        "priv-app/GameTools_Dream",
-        "priv-app/GameOptimizingService",
-        "app/ARZone",
-        "priv-app/AREmoji",
-        "priv-app/AREmojiEditor",
-        "app/ARDrawing",
-        "priv-app/SmartTouchCall",
-        "priv-app/AvatarEmojiSticker",
-        "priv-app/StickerFaceARAvatar",
-        "app/StickerCenter",
-        "app/MinusOnePage",
-        "priv-app/ThemeStore",
-        "priv-app/GalaxyApps_OPEN",
-        "priv-app/SamsungBilling",
-        "app/KidsHome_Installer",
-        "app/GearManagerStub",
-        "app/DictDiotekForSec",
-        "priv-app/GpuWatchApp",
-        "app/SmartSwitchAgent",
-        "priv-app/SmartSwitchAssistant",
-        "priv-app/SamsungCloudClient",
-        "priv-app/DigitalWellbeing",
-        "priv-app/LinkToWindowsService",
-        "priv-app/AuthFactorTouchService",
-        "app/MdecService",
-        "priv-app/DeXonPC",
-        "app/UnifiedWFC",
-        # Canta uninstall-for-user (Samsung)
-        "app/AASAservice",
-        "app/AllshareFileShare",
-        "priv-app/EarphoneTypeC",
-        "priv-app/OMCAgent5",
-        "priv-app/Routines",
-        "priv-app/SecAppSeparation",
-        "priv-app/ShareLive",
-        "priv-app/BeaconManager",
-        "priv-app/EasySetup",
-        "priv-app/Fmm",
-        "priv-app/IpsGeofence",
-        "priv-app/Quickboard",
-        "app/Privacy",
-        "priv-app/SDMConfig",
-        "priv-app/PeopleStripe",
-        "app/ShortcutBackupService",
-        "priv-app/SmartCallProvider",
-        "app/VTCameraSetting",
-        "priv-app/KLMSAgent",
-        "priv-app/SecureFolder",
-        "app/RcsSettings",
-        "app/BluetoothAgent",
-        "priv-app/KnoxDesktopLauncher",
-        "priv-app/SamsungMagnifier3",
-        "priv-app/SendHelpMessage",
-        "app/SamsungWeather",
-        "priv-app/PhoneErrService",
-        "app/UniversalMDMClient",
-    ]
-    extra_prism = [
-        "app/SwiftKey-market-arm64-v8a-release",
-    ]
-    extra_pkgs = [
-        "com.samsung.android.bixby.agent",
-        "com.samsung.android.bixby.wakeup",
-        "com.samsung.android.bixbyvision.framework",
-        "com.samsung.android.app.settings.bixby",
-        "com.samsung.android.visionintelligence",
-        "com.samsung.android.svoiceime",
-        "com.samsung.sait.bsdservice",
-        "com.samsung.sait.sohservice",
-        "com.samsung.android.app.galaxyfinder",
-        "com.samsung.android.svcagent",
-        "com.microsoft.appmanager",
-        "com.samsung.android.game.gametools",
-        "com.samsung.android.game.gos",
-        "com.samsung.android.arzone",
-        "com.samsung.android.aremoji",
-        "com.samsung.android.aremojieditor",
-        "com.samsung.android.ardrawing",
-        "com.samsung.android.visualars",
-        "com.sec.android.mimage.avatarstickers",
-        "com.samsung.android.app.camera.sticker.facearavatar.preload",
-        "com.samsung.android.stickercenter",
-        "com.samsung.android.app.spage",
-        "com.samsung.android.themestore",
-        "com.sec.android.app.samsungapps",
-        "com.sec.android.app.billing",
-        "com.samsung.android.kidsinstaller",
-        "com.samsung.android.app.watchmanagerstub",
-        "com.diotek.sec.lookup.dictionary",
-        "com.samsung.gpuwatchapp",
-        "com.sec.android.easyMover",
-        "com.sec.android.easyMover.Agent",
-        "com.samsung.android.smartswitchassistant",
-        "com.touchtype.swiftkey",
-        "com.samsung.android.scloud",
-        "com.samsung.android.forest",
-        "com.samsung.android.mdx",
-        "com.samsung.android.app.tips",
-        "com.samsung.cmfa.AuthTouch",
-        "com.samsung.android.mdecservice",
-        "com.sec.android.app.dexonpc",
-        "com.sec.unifiedwfc",
-        "com.samsung.aasaservice",
-        "com.samsung.android.allshare.service.fileshare",
-        "com.samsung.android.app.earphonetypec",
-        "com.samsung.android.app.omcagent",
-        "com.samsung.android.app.routines",
-        "com.samsung.android.appseparation",
-        "com.samsung.android.app.sharelive",
-        "com.samsung.android.beaconmanager",
-        "com.samsung.android.easysetup",
-        "com.samsung.android.fmm",
-        "com.samsung.android.ipsgeofence",
-        "com.samsung.android.mdx.quickboard",
-        "com.samsung.android.privateshare",
-        "com.samsung.android.sdm.config",
-        "com.samsung.android.service.peoplestripe",
-        "com.samsung.android.shortcutbackupservice",
-        "com.samsung.android.smartcallprovider",
-        "com.samsung.android.vtcamerasettings",
-        "com.samsung.klmsagent",
-        "com.samsung.knox.securefolder",
-        "com.samsung.rcs",
-        "com.sec.android.app.bluetoothagent",
-        "com.sec.android.app.desktoplauncher",
-        "com.sec.android.app.magnifier",
-        "com.sec.android.app.safetyassurance",
-        "com.sec.android.daemonapp",
-        "com.sec.app.RilErrorNotifier",
-        "com.sec.enterprise.knox.cloudmdm.smdms",
-    ]
-    rest_system = [
-        "app/BasicDreams",
-        "app/PhotoTable",
-        "app/VoiceAccess",
-        "app/LiveTranscribe",
-        "app/Stk",
-        "app/Stk2",
-        "priv-app/AppUpdateCenter",
-        "priv-app/DocumentsUIGoogle",
-    ]
-    rest_product = [
-        "priv-app/Velvet",
-        "priv-app/AndroidAutoStub",
-        "priv-app/FamilyLinkParentalControls",
-    ]
-    rest_pkgs = [
-        "com.android.dreams.basic",
-        "com.android.dreams.phototable",
-        "com.android.stk",
-        "com.android.stk2",
-        "com.google.android.googlequicksearchbox",
-        "com.google.android.apps.accessibility.voiceaccess",
-        "com.google.audio.hearing.visualization.accessibility.scribe",
-        "com.google.android.projection.gearhead",
-        "com.samsung.android.app.updatecenter",
-        "com.google.android.gms.supervision",
-        "com.google.android.documentsui",
-        "com.touchtype.swiftkey",
-    ]
-    extra_body = f"""
-log "flash after ROM + Format Data, before first boot"
-open_part system f2fs || exit 1
-SYS=$(app_root "$RESULT") || exit 1
-log "system $SYS"
-wipe_tree "$SYS" "" {words(extra_system)}
-open_part prism ext4 || exit 1
-PRISM=$(app_root "$RESULT") || exit 1
-log "prism $PRISM"
-wipe_tree "$PRISM" "prism " {words(extra_prism)}
-wipe_data {words(extra_pkgs)}
-"""
-    rest_body = f"""
-log "flash after ROM + Format Data, before first boot"
-open_part system f2fs || exit 1
-SYS=$(app_root "$RESULT") || exit 1
-log "system $SYS"
-wipe_tree "$SYS" "" {words(rest_system)}
-open_part product f2fs || exit 1
-PROD=$(app_root "$RESULT") || exit 1
-log "product $PROD"
-wipe_tree "$PROD" "product " {words(rest_product)}
-wipe_data {words(rest_pkgs)}
-"""
-    extra_updater = """ui_print("Extra Samsung + Canta removals");
+    # Optional zips. The ROM image uses un1ca_debloat.list, not these files.
+    # Kept out: Wi-Fi Calling, OMC, SDM, fingerprint touch, Find My Mobile,
+    # SOS, SIM toolkit, DocumentsUI, Routines, Secure Folder, DeX on PC,
+    # KLMSAgent, RCS settings.
+    lists = os.path.join(ROOT, "target", "r0q")
+    extra = load_debloat(os.path.join(lists, "extra_debloat.list"))
+    rest = load_debloat(os.path.join(lists, "rest_debloat.list"))
+    extra_body = body_for(
+        "flash after ROM + Format Data, before first boot",
+        extra,
+        (
+            ("system", "f2fs", "SYS", ""),
+            ("prism", "ext4", "PRISM", "prism "),
+        ),
+    )
+    rest_body = body_for(
+        "flash after ROM + Format Data, before first boot",
+        rest,
+        (
+            ("system", "f2fs", "SYS", ""),
+            ("product", "f2fs", "PROD", "product "),
+        ),
+    )
+    extra_updater = """ui_print("Extra Samsung debloat");
 ui_print("Flash after Format Data, before first boot");
-ui_print("Includes Routines/FMM/Weather/SecureFolder/DeX UI/WFC/...");
-ui_print("Keeps dialer, messages, camera, account, DressRoom");
+ui_print("Bixby, AR, Galaxy Store, themes, games, Smart Switch, cloud");
+ui_print("Keeps calls, WFC, OMC, SDM, fingerprint, FMM, Routines, DeX, SOS");
 package_extract_dir("extra", "/tmp/extra");
 run_program("/sbin/sh", "/tmp/extra/apply.sh");
 ui_print("Done");
 """
-    rest_updater = """ui_print("Rest debloat + Canta Google leftovers");
+    rest_updater = """ui_print("Rest debloat");
 ui_print("Flash after Format Data, before first boot");
-ui_print("Removes Assistant/Auto/FamilyLink/DocumentsUI/STK");
-ui_print("Keeps print/Turbo/AS/OmaCP/factory (Canta did not remove them)");
+ui_print("Assistant, Android Auto, Family Link, Voice Access, Live Transcribe");
+ui_print("Keeps SIM toolkit and DocumentsUI");
 package_extract_dir("rest", "/tmp/rest");
 run_program("/sbin/sh", "/tmp/rest/apply.sh");
 ui_print("Done");

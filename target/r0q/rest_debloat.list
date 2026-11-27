@@ -1,0 +1,22 @@
+# Optional zip rest_debloat_S901E.zip.
+# Same columns as un1ca_debloat.list. data lines also wipe /data.
+# Left installed: SIM toolkit and DocumentsUI.
+
+system app/BasicDreams
+system app/PhotoTable
+system app/VoiceAccess
+system app/LiveTranscribe
+system priv-app/AppUpdateCenter
+
+product priv-app/Velvet
+product priv-app/AndroidAutoStub
+product priv-app/FamilyLinkParentalControls
+
+data com.android.dreams.basic
+data com.android.dreams.phototable
+data com.google.android.googlequicksearchbox
+data com.google.android.apps.accessibility.voiceaccess
+data com.google.audio.hearing.visualization.accessibility.scribe
+data com.google.android.projection.gearhead
+data com.samsung.android.app.updatecenter
+data com.google.android.gms.supervision
