@@ -262,6 +262,7 @@ def main():
         groups,
         (
             ("system", "f2fs", "SYS", ""),
+            ("system_ext", "f2fs", "SYSEXT", "system_ext "),
             ("prism", "ext4", "PRISM", "prism "),
             ("product", "f2fs", "PROD", "product "),
         ),
