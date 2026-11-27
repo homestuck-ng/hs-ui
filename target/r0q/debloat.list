@@ -108,7 +108,6 @@ system priv-app/EsimClient
 system priv-app/CMFAFramework
 system priv-app/MultiControlVP6
 system priv-app/EnhancedAttestationAgent
-system priv-app/KnoxCore
 system priv-app/KPECore
 system priv-app/MCFDeviceSync
 system app/MdxKitService
@@ -245,7 +244,6 @@ data com.samsung.android.cmfa.framework
 data com.samsung.android.da.daagent
 data com.samsung.android.inputshare
 data com.samsung.android.knox.attestation
-data com.samsung.android.knox.containercore
 data com.samsung.android.knox.kpecore
 data com.samsung.android.mcfds
 data com.samsung.android.mdx.kit
