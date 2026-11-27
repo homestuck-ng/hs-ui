@@ -1,7 +1,8 @@
-# UN1CA unica/debloat.sh plus target/r0q/debloat.sh.
-# partition is the image root. The path is relative to that root.
-# eSIM apps stay: r0q supports eSIM. fabric_crypto stays: UN1CA r0q is API 34.
-# DiagMonAgent9 is the One UI 5.1 folder. UN1CA only names DiagMonAgent91.
+# UN1CA fourteen/fifteen unica/debloat.sh plus target/r0q/debloat.sh.
+# sixteen has no target/r0q/debloat.sh; its common list dropped the r0q block.
+# eSIM stays: r0q TARGET_COMMON_SUPPORT_EMBEDDED_SIM=true.
+# fabric_crypto stays: sixteen no longer deletes it.
+# DiagMonAgent9 is the One UI 5.1 name of UN1CA's DiagMonAgent91.
 
 system dpolicy_system
 system system/bin/ssud

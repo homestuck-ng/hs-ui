@@ -54,10 +54,9 @@ DELETE_REL = [
     "etc/permissions/privapp-permissions-com.samsung.android.knox.zt.framework.xml",
     "etc/permissions/signature-permissions-com.samsung.android.kgclient.xml",
     "etc/sysconfig/preinstalled-packages-com.samsung.android.coldwalletservice.xml",
-    "framework/service-samsung-blockchain.jar",
-    # android.hardware.weaver@1.0.so stays. OrangeFox and vold call IWeaver.
+    # android.hardware.weaver@1.0.so stays. UN1CA sixteen deletes the client
+    # library. This firmware has no IWeaver service to replace it.
     "priv-app/HdmApk",
-    "priv-app/KnoxAIFrameworkApp",
     "priv-app/KnoxFrameBufferProvider",
     "priv-app/KnoxGuard",
     "priv-app/KnoxMposAgent",
