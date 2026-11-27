@@ -48,7 +48,7 @@ This hybrid keeps stock userdata FBE (`fileencryption` + `metadata_encryption` +
 
 ## What stays
 
-Calls, SMS, camera, gallery, Samsung keyboard, DeX, My Files, Routines, Reminder, location, emergency calls, Find My Mobile, Samsung Account, Play Store, Google services, and Wi-Fi Calling.
+Calls, SMS, camera, gallery, Samsung keyboard, My Files, Reminder, location, emergency calls, Find My Mobile, Play Store, Google services, and Wi-Fi Calling.
 
 ## What is removed
 
@@ -62,7 +62,7 @@ Flash order in OrangeFox: **ROM zip → Format Data → `debloat_S901E.zip` → 
 
 | Zip | Partitions | Effect |
 | --- | --- | --- |
-| `recovery/debloat_S901E.zip` | system, prism, product | List: `target/r0q/debloat.list`. Removes Bixby, AR/emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey market, Samsung Cloud, Digital Wellbeing, Link to Windows, Assistant, Android Auto stub, Family Link, App Update Center, Voice Access, Live Transcribe, BasicDreams/PhotoTable. Leaves Wi-Fi Calling, OMC, SDM, fingerprint, Find My Mobile, SOS, SIM toolkit, DocumentsUI, Routines, Secure Folder, DeX on PC, KLMSAgent, RCS, dialer, messages, camera. Log: `/tmp/debloat.log`. |
+| `recovery/debloat_S901E.zip` | system, prism, product | List: `target/r0q/debloat.list`. Removes Bixby, AR/emoji, Galaxy Store, Theme Store, Theme Center, Samsung Account, Routines, DeX, Game Tools, Smart Switch, SwiftKey market, Samsung Cloud, Digital Wellbeing, Link to Windows, Assistant, Android Auto stub, Family Link, App Update Center, Voice Access, Live Transcribe, BasicDreams/PhotoTable. Leaves Wi-Fi Calling, OMC, SDM, fingerprint, Find My Mobile, SOS, SIM toolkit, DocumentsUI, Secure Folder, KLMSAgent, RCS, dialer, messages, camera. Log: `/tmp/debloat.log`. |
 
 The old `encryption_S901E.zip` is gone. Encryption stays in the hybrid ROM (stock vendor + vendor_boot FBE flags). OrangeFox FBE unlock is the [r0q_twrp fork](https://github.com/homestuck-ng/android_device_samsung_r0q_twrp) `fox_12.1`.
 
