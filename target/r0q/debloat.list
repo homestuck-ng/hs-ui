@@ -1,7 +1,8 @@
-# Optional zip extra_samsung_S901E.zip.
+# Optional zip recovery/debloat_S901E.zip.
 # Same columns as un1ca_debloat.list. data lines also wipe /data.
 # Left installed: Wi-Fi Calling, OMC, SDM, fingerprint touch, Find My Mobile,
-# SOS, Routines, Secure Folder, DeX on PC, KLMSAgent, RCS.
+# SOS, SIM toolkit, DocumentsUI, Routines, Secure Folder, DeX on PC,
+# KLMSAgent, RCS.
 
 system priv-app/Bixby
 system app/BixbyWakeup
@@ -37,8 +38,17 @@ system priv-app/SmartSwitchAssistant
 system priv-app/SamsungCloudClient
 system priv-app/DigitalWellbeing
 system priv-app/LinkToWindowsService
+system app/BasicDreams
+system app/PhotoTable
+system app/VoiceAccess
+system app/LiveTranscribe
+system priv-app/AppUpdateCenter
 
 prism app/SwiftKey-market-arm64-v8a-release
+
+product priv-app/Velvet
+product priv-app/AndroidAutoStub
+product priv-app/FamilyLinkParentalControls
 
 data com.samsung.android.bixby.agent
 data com.samsung.android.bixby.wakeup
@@ -77,3 +87,11 @@ data com.samsung.android.scloud
 data com.samsung.android.forest
 data com.samsung.android.mdx
 data com.samsung.android.app.tips
+data com.android.dreams.basic
+data com.android.dreams.phototable
+data com.google.android.googlequicksearchbox
+data com.google.android.apps.accessibility.voiceaccess
+data com.google.audio.hearing.visualization.accessibility.scribe
+data com.google.android.projection.gearhead
+data com.samsung.android.app.updatecenter
+data com.google.android.gms.supervision

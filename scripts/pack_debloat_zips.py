@@ -255,56 +255,29 @@ def body_for(title, groups, mounts):
 
 
 def main():
-    # Optional zips. The ROM image uses un1ca_debloat.list, not these files.
-    # Kept out: Wi-Fi Calling, OMC, SDM, fingerprint touch, Find My Mobile,
-    # SOS, SIM toolkit, DocumentsUI, Routines, Secure Folder, DeX on PC,
-    # KLMSAgent, RCS settings.
-    lists = os.path.join(ROOT, "target", "r0q")
-    extra = load_debloat(os.path.join(lists, "extra_debloat.list"))
-    rest = load_debloat(os.path.join(lists, "rest_debloat.list"))
-    extra_body = body_for(
+    # One optional zip. The ROM image uses un1ca_debloat.list, not this file.
+    groups = load_debloat(os.path.join(ROOT, "target", "r0q", "debloat.list"))
+    body = body_for(
         "flash after ROM + Format Data, before first boot",
-        extra,
+        groups,
         (
             ("system", "f2fs", "SYS", ""),
             ("prism", "ext4", "PRISM", "prism "),
-        ),
-    )
-    rest_body = body_for(
-        "flash after ROM + Format Data, before first boot",
-        rest,
-        (
-            ("system", "f2fs", "SYS", ""),
             ("product", "f2fs", "PROD", "product "),
         ),
     )
-    extra_updater = """ui_print("Extra Samsung debloat");
+    updater = """ui_print("hs-ui debloat");
 ui_print("Flash after Format Data, before first boot");
-ui_print("Bixby, AR, Galaxy Store, themes, games, Smart Switch, cloud");
-ui_print("Keeps calls, WFC, OMC, SDM, fingerprint, FMM, Routines, DeX, SOS");
-package_extract_dir("extra", "/tmp/extra");
-run_program("/sbin/sh", "/tmp/extra/apply.sh");
-ui_print("Done");
-"""
-    rest_updater = """ui_print("Rest debloat");
-ui_print("Flash after Format Data, before first boot");
-ui_print("Assistant, Android Auto, Family Link, Voice Access, Live Transcribe");
-ui_print("Keeps SIM toolkit and DocumentsUI");
-package_extract_dir("rest", "/tmp/rest");
-run_program("/sbin/sh", "/tmp/rest/apply.sh");
+ui_print("List: target/r0q/debloat.list");
+package_extract_dir("debloat", "/tmp/debloat");
+run_program("/sbin/sh", "/tmp/debloat/apply.sh");
 ui_print("Done");
 """
     pack(
-        "extra_samsung_S901E.zip",
-        "extra",
-        build_script("extra samsung", "/tmp/extra_debloat.log", extra_body),
-        extra_updater,
-    )
-    pack(
-        "rest_debloat_S901E.zip",
-        "rest",
-        build_script("rest debloat", "/tmp/rest_debloat.log", rest_body),
-        rest_updater,
+        "debloat_S901E.zip",
+        "debloat",
+        build_script("debloat", "/tmp/debloat.log", body),
+        updater,
     )
 
 

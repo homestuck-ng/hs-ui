@@ -58,12 +58,11 @@ eSIM, `fabric_crypto`, OMC, and SDM stay.
 
 ## Optional zips
 
-Flash order in OrangeFox: **ROM zip → Format Data → these debloat zips → reboot to system** (first boot creates FBE). Do not boot Android between Format Data and the debloat zips. The zips mount system/product/prism themselves and only soft-skip `/data` if it is not mountable yet.
+Flash order in OrangeFox: **ROM zip → Format Data → `debloat_S901E.zip` → reboot to system** (first boot creates FBE). Do not boot Android between Format Data and the debloat zip. The zip mounts system, product, and prism itself and only soft-skips `/data` if it is not mountable yet.
 
 | Zip | Partitions | Effect |
 | --- | --- | --- |
-| `recovery/extra_samsung_S901E.zip` | system, prism | List: `target/r0q/extra_debloat.list`. Removes Bixby, AR/emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey market, Samsung Cloud, Digital Wellbeing, Link to Windows. Leaves Wi-Fi Calling, OMC, SDM, fingerprint, Find My Mobile, Routines, Secure Folder, DeX on PC, KLMSAgent, RCS, dialer, messages, camera. Log: `/tmp/extra_debloat.log`. |
-| `recovery/rest_debloat_S901E.zip` | system, product | List: `target/r0q/rest_debloat.list`. Removes Assistant, Android Auto stub, Family Link, App Update Center, Voice Access, Live Transcribe, BasicDreams/PhotoTable. Leaves SIM toolkit and DocumentsUI. Log: `/tmp/rest_debloat.log`. |
+| `recovery/debloat_S901E.zip` | system, prism, product | List: `target/r0q/debloat.list`. Removes Bixby, AR/emoji, Galaxy Store, themes, Game Tools, Smart Switch, SwiftKey market, Samsung Cloud, Digital Wellbeing, Link to Windows, Assistant, Android Auto stub, Family Link, App Update Center, Voice Access, Live Transcribe, BasicDreams/PhotoTable. Leaves Wi-Fi Calling, OMC, SDM, fingerprint, Find My Mobile, SOS, SIM toolkit, DocumentsUI, Routines, Secure Folder, DeX on PC, KLMSAgent, RCS, dialer, messages, camera. Log: `/tmp/debloat.log`. |
 
 The old `encryption_S901E.zip` is gone. Encryption stays in the hybrid ROM (stock vendor + vendor_boot FBE flags). OrangeFox FBE unlock is the [r0q_twrp fork](https://github.com/homestuck-ng/android_device_samsung_r0q_twrp) `fox_12.1`.
 
