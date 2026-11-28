@@ -88,6 +88,7 @@ VENDOR_PROPS = {
     "ro.security.fips_skc.ver": "",
     "ro.security.fips_scrypto.ver": "",
     "ro.security.fips.ux": "Disabled",
+    "ro.security.cass.feature": "0",
 }
 
 FLAG_FALSE = [
@@ -343,13 +344,46 @@ def nuke_floating_blockchain(sysroot: str) -> None:
             text,
             flags=re.S,
         )
-        new = new.replace(
-            "<SEC_FLOATING_FEATURE_FRAMEWORK_SUPPORT_BLOCKCHAIN_SERVICE>TRUE</SEC_FLOATING_FEATURE_FRAMEWORK_SUPPORT_BLOCKCHAIN_SERVICE>",
+        new = re.sub(
+            r"[ \t]*<SEC_FLOATING_FEATURE_CONTEXTSERVICE_ENABLE_SURVEY_MODE>.*?</SEC_FLOATING_FEATURE_CONTEXTSERVICE_ENABLE_SURVEY_MODE>\n?",
             "",
+            new,
+            flags=re.S,
         )
         if new != text:
             open(path, "w", encoding="utf-8", newline="\n").write(new)
             print("floating", path)
+
+
+def patch_vendor_services(vendor_root: str) -> None:
+    """Stop vendor TEE/Knox daemons that crash-loop on unlocked bootloaders,
+    and drop fsck check on the zeroed /carrier partition."""
+    rc_rules = (
+        ("etc/init/cass.rc", r"(?m)^([ \t]*)(start cass)$", r"\1# \2 (disabled by deknox)"),
+        ("etc/init/pa_daemon_qsee.rc", r"(?m)^([ \t]*)(start proca)$", r"\1# \2 (disabled by deknox)"),
+        ("etc/init/vaultkeeper_common.rc", r"(?m)^([ \t]*)(start vaultkeeper)$", r"\1# \2 (disabled by deknox)"),
+    )
+    for rel, pattern, repl in rc_rules:
+        path = os.path.join(vendor_root, rel.replace("/", os.sep))
+        if not os.path.isfile(path):
+            continue
+        text = open(path, encoding="utf-8", errors="replace").read()
+        new, n = re.subn(pattern, repl, text)
+        if n and new != text:
+            open(path, "w", encoding="utf-8", newline="\n").write(new)
+            print("vendor rc", rel)
+
+    fstab = os.path.join(vendor_root, "etc", "fstab.qcom")
+    if os.path.isfile(fstab):
+        text = open(fstab, encoding="utf-8", errors="replace").read()
+        new = re.sub(
+            r"(?m)^([^\n#]*\s/carrier\s[^\n]*)defaults,nofail,check\b",
+            r"\1defaults,nofail",
+            text,
+        )
+        if new != text:
+            open(fstab, "w", encoding="utf-8", newline="\n").write(new)
+            print("vendor fstab", fstab)
 
 
 def main():
@@ -365,6 +399,7 @@ def main():
     set_props(system, SYSTEM_PROPS)
     if os.path.isdir(vendor):
         set_props(vendor, VENDOR_PROPS)
+        patch_vendor_services(vendor)
     nuke_floating_blockchain(sysroot)
     tool_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "prebuilts", "smali")
     totals = {"flags": 0, "returns": 0, "knoxguard": 0}
