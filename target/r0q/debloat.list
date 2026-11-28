@@ -110,7 +110,6 @@ system priv-app/MCFDeviceSync
 system app/MdxKitService
 system priv-app/SamsungPositioning
 system priv-app/MobileWips
-system priv-app/SmartManager_v5
 system priv-app/Crane
 system priv-app/FaceService
 system priv-app/IPService
@@ -279,7 +278,6 @@ data com.samsung.android.mcfds
 data com.samsung.android.mdx.kit
 data com.samsung.android.samsungpositioning
 data com.samsung.android.server.wifi.mobilewips
-data com.samsung.android.sm
 data com.samsung.crane
 data com.samsung.faceservice
 data com.samsung.ipservice
