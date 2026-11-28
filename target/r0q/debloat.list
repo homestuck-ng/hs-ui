@@ -1,7 +1,8 @@
 # Optional zip recovery/debloat_S901E.zip.
 # Same columns as un1ca_debloat.list. data lines also wipe /data.
 # Left installed: Wi-Fi Calling, OMC, SDM, fingerprint touch, Find My Mobile,
-# SOS, SIM toolkit, DocumentsUI, Secure Folder, KLMSAgent, RCS, DesktopModeUiService.
+# SOS, SIM toolkit, DocumentsUI, Secure Folder, KLMSAgent, RCS,
+# DesktopModeUiService, SamsungSmartSuggestions.
 
 system priv-app/Bixby
 system app/BixbyWakeup
@@ -86,7 +87,6 @@ system priv-app/NetworkDiagnostic
 system priv-app/PeripheralFramework
 system priv-app/RubinVersion33
 system priv-app/SPPPushClient
-system priv-app/SamsungSmartSuggestions
 system priv-app/SmartThingsKit
 system priv-app/VolumeMonitorProvider_T
 system priv-app/knoxanalyticsagent
@@ -253,7 +253,6 @@ data com.samsung.android.networkdiagnostic
 data com.samsung.android.peripheral.framework
 data com.samsung.android.rubin.app
 data com.sec.spp.push
-data com.samsung.android.smartsuggestions
 data com.samsung.android.service.stplatform
 data com.sec.android.app.volumemonitorprovider
 data com.samsung.android.knox.analytics.uploader
